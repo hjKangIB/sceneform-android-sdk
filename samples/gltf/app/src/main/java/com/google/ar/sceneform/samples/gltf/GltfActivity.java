@@ -15,11 +15,14 @@
  */
 package com.google.ar.sceneform.samples.gltf;
 
+import static com.google.ar.sceneform.rendering.MaterialFactory.MATERIAL_TEXTURE;
+import static com.google.ar.sceneform.rendering.PlaneRenderer.MATERIAL_UV_SCALE;
 import static java.util.concurrent.TimeUnit.SECONDS;
 
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
+import android.media.Image;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Build.VERSION_CODES;
@@ -34,9 +37,14 @@ import android.widget.Toast;
 import com.google.android.filament.gltfio.Animator;
 import com.google.android.filament.gltfio.FilamentAsset;
 import com.google.ar.core.Anchor;
+import com.google.ar.core.Camera;
+import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
+import com.google.ar.core.Session;
+import com.google.ar.core.TrackingState;
 import com.google.ar.sceneform.AnchorNode;
+import com.google.ar.sceneform.ArSceneView;
 import com.google.ar.sceneform.Node;
 import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
@@ -46,6 +54,7 @@ import com.google.ar.sceneform.rendering.MaterialFactory;
 import com.google.ar.sceneform.rendering.ModelRenderable;
 import com.google.ar.sceneform.rendering.Renderable;
 import com.google.ar.sceneform.rendering.ShapeFactory;
+import com.google.ar.sceneform.rendering.Texture;
 import com.google.ar.sceneform.rendering.ViewRenderable;
 import com.google.ar.sceneform.ux.ArFragment;
 import com.google.ar.sceneform.ux.TransformableNode;
@@ -110,34 +119,33 @@ public class GltfActivity extends AppCompatActivity {
 		setContentView(R.layout.activity_ux);
 		arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
 
-		WeakReference<GltfActivity> weakActivity = new WeakReference<>(this);
+//		WeakReference<GltfActivity> weakActivity = new WeakReference<>(this);
 
-		ModelRenderable.builder()
-						.setSource(
-										this,
-										Uri.parse(
-														"https://storage.googleapis.com/ar-answers-in-search-models/static/Tiger/model.glb"))
-						.setIsFilamentGltf(true)
-						.build()
-						.thenAccept(
-										modelRenderable -> {
-											GltfActivity activity = weakActivity.get();
-											if (activity != null) {
-												activity.renderable = modelRenderable;
-											}
-										})
-						.exceptionally(
-										throwable -> {
-											Toast toast =
-															Toast.makeText(this, "Unable to load Tiger renderable", Toast.LENGTH_LONG);
-											toast.setGravity(Gravity.CENTER, 0, 0);
-											toast.show();
-											return null;
-										});
+//		ModelRenderable.builder()
+//						.setSource(
+//										this,
+//										Uri.parse(
+//														"https://storage.googleapis.com/ar-answers-in-search-models/static/Tiger/model.glb"))
+//						.setIsFilamentGltf(true)
+//						.build()
+//						.thenAccept(
+//										modelRenderable -> {
+//											GltfActivity activity = weakActivity.get();
+//											if (activity != null) {
+//												activity.renderable = modelRenderable;
+//											}
+//										})
+//						.exceptionally(
+//										throwable -> {
+//											Toast toast =
+//															Toast.makeText(this, "Unable to load Tiger renderable", Toast.LENGTH_LONG);
+//											toast.setGravity(Gravity.CENTER, 0, 0);
+//											toast.show();
+//											return null;
+//										});
 
 		arFragment.setOnTapArPlaneListener(
 						(HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
-
 							int val = motionEvent.getActionMasked();
 							float axisVal = motionEvent.getAxisValue(MotionEvent.AXIS_X, motionEvent.getPointerId(motionEvent.getPointerCount() - 1));
 							Log.d("Values:", String.valueOf(val) + String.valueOf(axisVal));
@@ -145,11 +153,29 @@ public class GltfActivity extends AppCompatActivity {
 							AnchorNode anchorNode = new AnchorNode(anchor);
 							lastAnchorNode.add(anchorNode);
 							anchorNode.setParent(arFragment.getArSceneView().getScene());
-							if (lastAnchorNode.size() >= 2) {
 
-								Vector3 point1, point2;
-								point1 = lastAnchorNode.get(0).getWorldPosition();
-								point2 = anchorNode.getWorldPosition();
+							MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
+											.thenAccept(
+															material -> {
+																ModelRenderable model = ShapeFactory.makeCylinder(
+																				.005f,
+																				.0001f,
+																				Vector3.zero(), material);
+
+																Node node = new Node();
+																node.setParent(anchorNode);
+																node.setRenderable(model);
+																node.setWorldPosition(anchorNode.getWorldPosition());
+																nextColor = (nextColor + 1) % colors.size();
+															}
+											);
+
+
+							Vector3 point1, point2;
+							point1 = lastAnchorNode.get(0).getWorldPosition();
+
+							if (lastAnchorNode.size() >= 2) {
+								point2 = lastAnchorNode.get(1).getWorldPosition();
 
     /*
         First, find the vector extending between the two points and define a look rotation
@@ -177,9 +203,12 @@ public class GltfActivity extends AppCompatActivity {
 																}
 												);
 //              lastAnchorNode = anchorNode;
-								lastAnchorNode.removeAll(lastAnchorNode);
+//								lastAnchorNode.removeAll(lastAnchorNode);
+								lastAnchorNode = new ArrayList<AnchorNode>();
 							}
 						});
+
+		//original sample source
 //        (HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
 //          if (renderable == null) {
 //            return;
@@ -232,16 +261,42 @@ public class GltfActivity extends AppCompatActivity {
 						.getScene()
 						.addOnUpdateListener(
 										frameTime -> {
-											Long time = System.nanoTime();
-											for (AnimationInstance animator : animators) {
-												animator.animator.applyAnimation(
-																animator.index,
-																(float) ((time - animator.startTime) / (double) SECONDS.toNanos(1))
-																				% animator.duration);
-												animator.animator.updateBoneMatrices();
-											}
+											Frame frame = arFragment.getArSceneView().getArFrame();
+											Camera camera = frame.getCamera();
+//											MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(255, 255, 244))
+//															.thenAccept(
+//																			material -> {
+//																				ModelRenderable model = ShapeFactory.makeCylinder(
+//																								.01f,
+//																								.0001f,
+//																								Vector3.zero(), material);
+//
+//																				Node node = new Node();
+//																				node.setParent(anchorNode);
+//																				node.setRenderable(model);
+//																				node.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
+//																				node.setWorldRotation(rotationFromAToB);
+//																			}
+//															);
+
 										});
 	}
+
+	// 호랑이 애니메이션
+//	arFrament
+//					.getArSceneView()
+//					.getScene()
+//						.addOnUpdateListener(
+//					frameTime -> {
+//		Long time = System.nanoTime();
+//		for (AnimationInstance animator : animators) {
+//			animator.animator.applyAnimation(
+//							animator.index,
+//							(float) ((time - animator.startTime) / (double) SECONDS.toNanos(1))
+//											% animator.duration);
+//			animator.animator.updateBoneMatrices();
+//		}
+//	});
 
 	/**
 	 * Returns false and displays an error message if Sceneform can not run, true if Sceneform can run
