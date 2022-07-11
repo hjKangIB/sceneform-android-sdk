@@ -125,7 +125,6 @@ public class GltfActivity extends AppCompatActivity {
 		arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
 
 //		WeakReference<GltfActivity> weakActivity = new WeakReference<>(this);
-
 //		ModelRenderable.builder()
 //						.setSource(
 //										this,
@@ -177,12 +176,13 @@ public class GltfActivity extends AppCompatActivity {
 							if (lastAnchorNode.size() >= 2) {
 								Vector3 point1 = lastAnchorNode.get(0).getWorldPosition();
 								Vector3 point2 = lastAnchorNode.get(1).getWorldPosition();
-								drawLine(point1, point2, anchorNode);
+								drawLineNDistance(point1, point2, anchorNode);
+
+
 								lastAnchorNode = new ArrayList<AnchorNode>();
 							}
 						});
-
-		//original sample source
+//		original sample source
 //        (HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
 //          if (renderable == null) {
 //            return;
@@ -286,7 +286,6 @@ public class GltfActivity extends AppCompatActivity {
 	}
 
 
-
 	private double getDistanceMeters(Vector3 v1, Vector3 v2) {
 		float distanceX = v1.x - v2.x;
 		float distanceY = v1.y - v2.y;
@@ -297,32 +296,39 @@ public class GltfActivity extends AppCompatActivity {
 						distanceZ * distanceZ);
 	}
 
-	private void drawLine(Vector3 point1, Vector3 point2, AnchorNode anchorNode){
-		//drawLine
-		if (lastAnchorNode.size() >= 2) {
-			final Vector3 difference = Vector3.subtract(point1, point2);
-			final Vector3 directionFromTopToBottom = difference.normalized();
-			final Quaternion rotationFromAToB =
-							Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
-			MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(255, 255, 244))
-							.thenAccept(
-											material -> {
+	private void drawLine(Color color, Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
+		// drawLine
+
+		final Vector3 difference = Vector3.subtract(point1, point2);
+		final Vector3 directionFromTopToBottom = difference.normalized();
+		final Quaternion rotationFromAToB =
+						Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
+		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), color)
+						.thenAccept(
+										material -> {
                             /* Then, create a rectangular prism, using ShapeFactory.makeCube() and use the difference vector
                                    to extend to the necessary length.  */
-												ModelRenderable model = ShapeFactory.makeCube(
-																new Vector3(.001f, .0001f, difference.length()),
-																Vector3.zero(), material);
+											ModelRenderable model = ShapeFactory.makeCube(
+															new Vector3(.001f, .0001f, difference.length()),
+															Vector3.zero(), material);
                             /* Last, set the world rotation of the node to the rotation calculated earlier and set the world position to
                                    the midpoint between the given points . */
-												Node node = new Node();
-												node.setParent(anchorNode);
-												node.setRenderable(model);
-												node.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
-												node.setWorldRotation(rotationFromAToB);
-											}
-							);
+											Node node = new Node();
+											node.setParent(anchorNode);
+											node.setRenderable(model);
+											node.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
+											node.setWorldRotation(rotationFromAToB);
+										}
+						);
+	}
 
-			double distanceCm = ((int)(getDistanceMeters(point1, point2) * 1000))/10.0f;
+	private void drawLineNDistance(Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
+		//drawLine
+		if (lastAnchorNode.size() >= 2) {
+			drawLine(new Color(255, 255, 244), point1, point2, anchorNode);
+
+			// represent distance Label
+			double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
 
 			Node distanceNode = new Node();
 			distanceNode.setParent(lastAnchorNode.get(0));
@@ -330,23 +336,50 @@ public class GltfActivity extends AppCompatActivity {
 //			distanceNode.setLocalPosition(Vector3.add(Vector3.subtract(point2, point1).scaled(.5f), new Vector3(0, 0.05f, 0)));
 			distanceNode.setLocalPosition(Vector3.subtract(point2, point1).scaled(.5f));
 
+			final Vector3 labelPoint = distanceNode.getWorldPosition();
+			final Vector3 xAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 0, 1));
+			final Vector3 difference = Vector3.subtract(labelPoint, xAxisPoint);
+			final Vector3 directionFromTopToBottom = difference.normalized();
+			final Quaternion rotationFromAToB =
+							Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
+
+
 			ViewRenderable.builder()
 							.setView(this, R.layout.tiger_card_view)
 							.build()
 							.thenAccept(
 											(renderable) -> {
 												String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
-												((TextView)renderable.getView()).setText(roundDownDistance);
-//												renderable.setShadowCaster(false);
-//												renderable.setShadowReceiver(false);
+												((TextView) renderable.getView()).setText(roundDownDistance);
+												renderable.setShadowCaster(false);
+												renderable.setShadowReceiver(false);
 												distanceNode.setRenderable(renderable);
 												distanceNode.setEnabled(true);
+												distanceNode.setWorldRotation(rotationFromAToB);
 											})
 							.exceptionally(
 											(throwable) -> {
 												throw new AssertionError("Could not load card view.", throwable);
 											}
 							);
+
+			// 라벨위치 기준 테스트용 표시
+			MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
+							.thenAccept(
+											material -> {
+												ModelRenderable model = ShapeFactory.makeCylinder(
+																.005f,
+																.0001f,
+																Vector3.zero(), material);
+
+												Node node = new Node();
+												node.setParent(distanceNode);
+												node.setRenderable(model);
+												node.setWorldPosition(distanceNode.getWorldPosition());
+												nextColor = (nextColor + 1) % colors.size();
+											}
+							);
+//			drawLine(new Color(0, 255, 0), labelPoint, xAxisPoint, anchorNode);
 		}
 	}
 }
