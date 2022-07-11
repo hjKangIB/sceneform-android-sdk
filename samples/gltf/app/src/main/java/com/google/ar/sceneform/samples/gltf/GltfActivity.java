@@ -37,8 +37,8 @@ import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.android.filament.gltfio.Animator;
-import com.google.android.filament.gltfio.FilamentAsset;
+//import com.google.android.filament.gltfio.Animator;
+//import com.google.android.filament.gltfio.FilamentAsset;
 import com.google.ar.core.Anchor;
 import com.google.ar.core.Camera;
 import com.google.ar.core.Frame;
@@ -63,12 +63,10 @@ import com.google.ar.sceneform.rendering.ViewRenderable;
 import com.google.ar.sceneform.ux.ArFragment;
 import com.google.ar.sceneform.ux.TransformableNode;
 
-import java.io.File;
 import java.lang.ref.WeakReference;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Set;
 
 import java.util.ArrayList;
 
@@ -82,22 +80,6 @@ public class GltfActivity extends AppCompatActivity {
 	private ArFragment arFragment;
 	private Renderable renderable;
 	private List<AnchorNode> lastAnchorNode = new ArrayList<AnchorNode>();
-
-	private static class AnimationInstance {
-		Animator animator;
-		Long startTime;
-		float duration;
-		int index;
-
-		AnimationInstance(Animator animator, int index, Long startTime) {
-			this.animator = animator;
-			this.startTime = startTime;
-			this.duration = animator.getAnimationDuration(index);
-			this.index = index;
-		}
-	}
-
-	private final Set<AnimationInstance> animators = new ArraySet<>();
 
 	private final List<Color> colors =
 					Arrays.asList(
@@ -125,31 +107,7 @@ public class GltfActivity extends AppCompatActivity {
 		setContentView(R.layout.activity_ux);
 		arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
 
-//		WeakReference<GltfActivity> weakActivity = new WeakReference<>(this);
-//		ModelRenderable.builder()
-//						.setSource(
-//										this,
-//										Uri.parse(
-//														"https://storage.googleapis.com/ar-answers-in-search-models/static/Tiger/model.glb"))
-//						.setIsFilamentGltf(true)
-//						.build()
-//						.thenAccept(
-//										modelRenderable -> {
-//											GltfActivity activity = weakActivity.get();
-//											if (activity != null) {
-//												activity.renderable = modelRenderable;
-//											}
-//										})
-//						.exceptionally(
-//										throwable -> {
-//											Toast toast =
-//															Toast.makeText(this, "Unable to load Tiger renderable", Toast.LENGTH_LONG);
-//											toast.setGravity(Gravity.CENTER, 0, 0);
-//											toast.show();
-//											return null;
-//										});
 		load3DObject("woodTile.glb");
-
 
 		arFragment.setOnTapArPlaneListener(
 						(HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
@@ -185,42 +143,6 @@ public class GltfActivity extends AppCompatActivity {
 							}
 						});
 
-
-//		draw tile
-//        (HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
-//          if (renderable == null) {
-//            return;
-//          }
-//
-//          // Create the Anchor.
-//          Anchor anchor = hitResult.createAnchor();
-//          AnchorNode anchorNode = new AnchorNode(anchor);
-//          anchorNode.setParent(arFragment.getArSceneView().getScene());
-//
-//          // Create the transformable model and add it to the anchor.
-//          TransformableNode model = new TransformableNode(arFragment.getTransformationSystem());
-//          model.setParent(anchorNode);
-//          model.setRenderable(renderable);
-//
-//          Node distanceNode = new Node();
-//          distanceNode.setParent(model);
-//          distanceNode.setEnabled(false);
-//          distanceNode.setLocalPosition(new Vector3(0.0f, 1.0f, 0.0f));
-//          ViewRenderable.builder()
-//                  .setView(this, R.layout.tiger_card_view)
-//                  .build()
-//                  .thenAccept(
-//                          (renderable) -> {
-//                              distanceNode.setRenderable(renderable);
-//                              distanceNode.setEnabled(true);
-//                          })
-//                  .exceptionally(
-//                          (throwable) -> {
-//                              throw new AssertionError("Could not load card view.", throwable);
-//                          }
-//                  );
-//        });
-
 		arFragment
 						.getArSceneView()
 						.getScene()
@@ -230,22 +152,6 @@ public class GltfActivity extends AppCompatActivity {
 											Camera camera = frame.getCamera();
 										});
 	} // onCreate end
-
-//	// 호랑이 애니메이션
-//	arFrament
-//					.getArSceneView()
-//					.getScene()
-//						.addOnUpdateListener(
-//					frameTime -> {
-//		Long time = System.nanoTime();
-//		for (AnimationInstance animator : animators) {
-//			animator.animator.applyAnimation(
-//							animator.index,
-//							(float) ((time - animator.startTime) / (double) SECONDS.toNanos(1))
-//											% animator.duration);
-//			animator.animator.updateBoneMatrices();
-//		}
-//	});
 
 	/**
 	 * Returns false and displays an error message if Sceneform can not run, true if Sceneform can run
@@ -276,7 +182,7 @@ public class GltfActivity extends AppCompatActivity {
 		return true;
 	}
 
-	private void load3DObject (String path) {
+	private void load3DObject(String path) {
 		// load 3d object
 		WeakReference<GltfActivity> weakActivity = new WeakReference<>(this);
 		ModelRenderable.builder()
@@ -338,7 +244,7 @@ public class GltfActivity extends AppCompatActivity {
 						);
 	}
 
-	private void drawDistanceLabel(Vector3 point1, Vector3 point2, AnchorNode anchorNode){
+	private void drawDistanceLabel(Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
 		// represent distance Label
 		double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
 
@@ -400,8 +306,25 @@ public class GltfActivity extends AppCompatActivity {
 		drawLine(new Color(0, 255, 0), labelPoint, zAxisPoint, anchorNode);
 	}
 
-	private void set3DTiles(Vector3 point1, Vector3 point2, AnchorNode anchorNode){
+	private void set3DTiles(Vector3 point1, Vector3 point2) {
+		//		draw tile
+		if (renderable == null) {
+			return;
+		}
+		AnchorNode anchorNode = lastAnchorNode.get(0);
+		anchorNode.setParent(arFragment.getArSceneView().getScene());
 
+		// Create the transformable model and add it to the anchor.
+		TransformableNode model = new TransformableNode(arFragment.getTransformationSystem());
+		model.setParent(anchorNode);
+		model.setRenderable(renderable);
+
+		final Vector3 difference = Vector3.subtract(point1, point2);
+		final Vector3 directionFromTopToBottom = difference.normalized();
+		final Quaternion rotationFromAToB =
+						Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
+		Quaternion rotation = Quaternion.axisAngle(new Vector3(0f, 1.0f, 0f), -90);
+		model.setWorldRotation(Quaternion.multiply(rotationFromAToB, rotation));
 	}
 
 	private void drawLineNTile(Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
@@ -409,7 +332,7 @@ public class GltfActivity extends AppCompatActivity {
 		if (lastAnchorNode.size() >= 2) {
 			drawLine(new Color(255, 255, 244), point1, point2, anchorNode);
 			drawDistanceLabel(point1, point2, anchorNode);
-			set3DTiles(point1, point2, anchorNode);
+			set3DTiles(point1, point2);
 		}
 	}
 }
