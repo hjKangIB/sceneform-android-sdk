@@ -337,11 +337,16 @@ public class GltfActivity extends AppCompatActivity {
 			distanceNode.setLocalPosition(Vector3.subtract(point2, point1).scaled(.5f));
 
 			final Vector3 labelPoint = distanceNode.getWorldPosition();
-			final Vector3 xAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 0, 1));
-			final Vector3 difference = Vector3.subtract(labelPoint, xAxisPoint);
+			final Vector3 zAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 0, 1));
+			final Vector3 difference = Vector3.subtract(labelPoint, zAxisPoint);
 			final Vector3 directionFromTopToBottom = difference.normalized();
 			final Quaternion rotationFromAToB =
 							Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
+
+			final Vector3 yAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 1, 0));
+			final Vector3 diffWithFloor = Vector3.subtract(labelPoint, yAxisPoint);
+			final Quaternion rotationToFloor =
+							Quaternion.lookRotation(diffWithFloor, Vector3.forward());
 
 
 			ViewRenderable.builder()
@@ -351,11 +356,12 @@ public class GltfActivity extends AppCompatActivity {
 											(renderable) -> {
 												String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
 												((TextView) renderable.getView()).setText(roundDownDistance);
-												renderable.setShadowCaster(false);
-												renderable.setShadowReceiver(false);
+//												renderable.setShadowCaster(false);
+//												renderable.setShadowReceiver(false);
 												distanceNode.setRenderable(renderable);
 												distanceNode.setEnabled(true);
 												distanceNode.setWorldRotation(rotationFromAToB);
+												distanceNode.setWorldRotation(rotationToFloor);
 											})
 							.exceptionally(
 											(throwable) -> {
@@ -379,7 +385,7 @@ public class GltfActivity extends AppCompatActivity {
 												nextColor = (nextColor + 1) % colors.size();
 											}
 							);
-//			drawLine(new Color(0, 255, 0), labelPoint, xAxisPoint, anchorNode);
+			drawLine(new Color(0, 255, 0), labelPoint, zAxisPoint, anchorNode);
 		}
 	}
 }
