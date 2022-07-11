@@ -22,44 +22,49 @@ import static java.util.concurrent.TimeUnit.SECONDS;
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
-import android.media.Image;
-import android.net.Uri;
+//import android.media.Image;
+//import android.net.Uri;
 import android.os.Build;
 import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.ArraySet;
 import android.util.Log;
-import android.view.Gravity;
+//import android.view.Gravity;
+//import android.view.LayoutInflater;
 import android.view.MotionEvent;
+import android.view.View;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.filament.gltfio.Animator;
-import com.google.android.filament.gltfio.FilamentAsset;
+//import com.google.android.filament.gltfio.FilamentAsset;
 import com.google.ar.core.Anchor;
 import com.google.ar.core.Camera;
 import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
-import com.google.ar.core.Session;
-import com.google.ar.core.TrackingState;
+//import com.google.ar.core.Pose;
+//import com.google.ar.core.Session;
+//import com.google.ar.core.TrackingState;
 import com.google.ar.sceneform.AnchorNode;
-import com.google.ar.sceneform.ArSceneView;
+//import com.google.ar.sceneform.ArSceneView;
 import com.google.ar.sceneform.Node;
 import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.Color;
-import com.google.ar.sceneform.rendering.Material;
+//import com.google.ar.sceneform.rendering.Material;
 import com.google.ar.sceneform.rendering.MaterialFactory;
 import com.google.ar.sceneform.rendering.ModelRenderable;
 import com.google.ar.sceneform.rendering.Renderable;
 import com.google.ar.sceneform.rendering.ShapeFactory;
-import com.google.ar.sceneform.rendering.Texture;
+//import com.google.ar.sceneform.rendering.Texture;
 import com.google.ar.sceneform.rendering.ViewRenderable;
 import com.google.ar.sceneform.ux.ArFragment;
-import com.google.ar.sceneform.ux.TransformableNode;
+//import com.google.ar.sceneform.ux.TransformableNode;
 
-import java.lang.ref.WeakReference;
+//import java.lang.ref.WeakReference;
+import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Set;
@@ -148,7 +153,6 @@ public class GltfActivity extends AppCompatActivity {
 						(HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
 							int val = motionEvent.getActionMasked();
 							float axisVal = motionEvent.getAxisValue(MotionEvent.AXIS_X, motionEvent.getPointerId(motionEvent.getPointerCount() - 1));
-							Log.d("Values:", String.valueOf(val) + String.valueOf(axisVal));
 							Anchor anchor = hitResult.createAnchor();
 							AnchorNode anchorNode = new AnchorNode(anchor);
 							lastAnchorNode.add(anchorNode);
@@ -170,40 +174,10 @@ public class GltfActivity extends AppCompatActivity {
 															}
 											);
 
-
-							Vector3 point1, point2;
-							point1 = lastAnchorNode.get(0).getWorldPosition();
-
 							if (lastAnchorNode.size() >= 2) {
-								point2 = lastAnchorNode.get(1).getWorldPosition();
-
-    /*
-        First, find the vector extending between the two points and define a look rotation
-        in terms of this Vector.
-    */
-								final Vector3 difference = Vector3.subtract(point1, point2);
-								final Vector3 directionFromTopToBottom = difference.normalized();
-								final Quaternion rotationFromAToB =
-												Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
-								MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(255, 255, 244))
-												.thenAccept(
-																material -> {
-                            /* Then, create a rectangular prism, using ShapeFactory.makeCube() and use the difference vector
-                                   to extend to the necessary length.  */
-																	ModelRenderable model = ShapeFactory.makeCube(
-																					new Vector3(.001f, .0001f, difference.length()),
-																					Vector3.zero(), material);
-                            /* Last, set the world rotation of the node to the rotation calculated earlier and set the world position to
-                                   the midpoint between the given points . */
-																	Node node = new Node();
-																	node.setParent(anchorNode);
-																	node.setRenderable(model);
-																	node.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
-																	node.setWorldRotation(rotationFromAToB);
-																}
-												);
-//              lastAnchorNode = anchorNode;
-//								lastAnchorNode.removeAll(lastAnchorNode);
+								Vector3 point1 = lastAnchorNode.get(0).getWorldPosition();
+								Vector3 point2 = lastAnchorNode.get(1).getWorldPosition();
+								drawLine(point1, point2, anchorNode);
 								lastAnchorNode = new ArrayList<AnchorNode>();
 							}
 						});
@@ -237,17 +211,17 @@ public class GltfActivity extends AppCompatActivity {
 //            material.setFloat4("baseColorFactor", color);
 //          }
 //
-//          Node tigerTitleNode = new Node();
-//          tigerTitleNode.setParent(model);
-//          tigerTitleNode.setEnabled(false);
-//          tigerTitleNode.setLocalPosition(new Vector3(0.0f, 1.0f, 0.0f));
+//          Node distanceNode = new Node();
+//          distanceNode.setParent(model);
+//          distanceNode.setEnabled(false);
+//          distanceNode.setLocalPosition(new Vector3(0.0f, 1.0f, 0.0f));
 //          ViewRenderable.builder()
 //                  .setView(this, R.layout.tiger_card_view)
 //                  .build()
 //                  .thenAccept(
 //                          (renderable) -> {
-//                              tigerTitleNode.setRenderable(renderable);
-//                              tigerTitleNode.setEnabled(true);
+//                              distanceNode.setRenderable(renderable);
+//                              distanceNode.setEnabled(true);
 //                          })
 //                  .exceptionally(
 //                          (throwable) -> {
@@ -263,26 +237,10 @@ public class GltfActivity extends AppCompatActivity {
 										frameTime -> {
 											Frame frame = arFragment.getArSceneView().getArFrame();
 											Camera camera = frame.getCamera();
-//											MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(255, 255, 244))
-//															.thenAccept(
-//																			material -> {
-//																				ModelRenderable model = ShapeFactory.makeCylinder(
-//																								.01f,
-//																								.0001f,
-//																								Vector3.zero(), material);
-//
-//																				Node node = new Node();
-//																				node.setParent(anchorNode);
-//																				node.setRenderable(model);
-//																				node.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
-//																				node.setWorldRotation(rotationFromAToB);
-//																			}
-//															);
-
 										});
-	}
+	} // onCreate end
 
-	// 호랑이 애니메이션
+//	// 호랑이 애니메이션
 //	arFrament
 //					.getArSceneView()
 //					.getScene()
@@ -326,4 +284,70 @@ public class GltfActivity extends AppCompatActivity {
 		}
 		return true;
 	}
+
+
+
+	private double getDistanceMeters(Vector3 v1, Vector3 v2) {
+		float distanceX = v1.x - v2.x;
+		float distanceY = v1.y - v2.y;
+		float distanceZ = v1.z - v2.z;
+
+		return Math.sqrt(distanceX * distanceX +
+						distanceY * distanceY +
+						distanceZ * distanceZ);
+	}
+
+	private void drawLine(Vector3 point1, Vector3 point2, AnchorNode anchorNode){
+		//drawLine
+		if (lastAnchorNode.size() >= 2) {
+			final Vector3 difference = Vector3.subtract(point1, point2);
+			final Vector3 directionFromTopToBottom = difference.normalized();
+			final Quaternion rotationFromAToB =
+							Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
+			MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(255, 255, 244))
+							.thenAccept(
+											material -> {
+                            /* Then, create a rectangular prism, using ShapeFactory.makeCube() and use the difference vector
+                                   to extend to the necessary length.  */
+												ModelRenderable model = ShapeFactory.makeCube(
+																new Vector3(.001f, .0001f, difference.length()),
+																Vector3.zero(), material);
+                            /* Last, set the world rotation of the node to the rotation calculated earlier and set the world position to
+                                   the midpoint between the given points . */
+												Node node = new Node();
+												node.setParent(anchorNode);
+												node.setRenderable(model);
+												node.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
+												node.setWorldRotation(rotationFromAToB);
+											}
+							);
+
+			double distanceCm = ((int)(getDistanceMeters(point1, point2) * 1000))/10.0f;
+
+			Node distanceNode = new Node();
+			distanceNode.setParent(lastAnchorNode.get(0));
+			distanceNode.setEnabled(false);
+//			distanceNode.setLocalPosition(Vector3.add(Vector3.subtract(point2, point1).scaled(.5f), new Vector3(0, 0.05f, 0)));
+			distanceNode.setLocalPosition(Vector3.subtract(point2, point1).scaled(.5f));
+
+			ViewRenderable.builder()
+							.setView(this, R.layout.tiger_card_view)
+							.build()
+							.thenAccept(
+											(renderable) -> {
+												String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
+												((TextView)renderable.getView()).setText(roundDownDistance);
+//												renderable.setShadowCaster(false);
+//												renderable.setShadowReceiver(false);
+												distanceNode.setRenderable(renderable);
+												distanceNode.setEnabled(true);
+											})
+							.exceptionally(
+											(throwable) -> {
+												throw new AssertionError("Could not load card view.", throwable);
+											}
+							);
+		}
+	}
 }
+
