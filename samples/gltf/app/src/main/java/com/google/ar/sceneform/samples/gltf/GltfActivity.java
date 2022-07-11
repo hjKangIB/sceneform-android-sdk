@@ -23,14 +23,14 @@ import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
 //import android.media.Image;
-//import android.net.Uri;
+import android.net.Uri;
 import android.os.Build;
 import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.util.ArraySet;
 import android.util.Log;
-//import android.view.Gravity;
+import android.view.Gravity;
 //import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
@@ -38,7 +38,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.android.filament.gltfio.Animator;
-//import com.google.android.filament.gltfio.FilamentAsset;
+import com.google.android.filament.gltfio.FilamentAsset;
 import com.google.ar.core.Anchor;
 import com.google.ar.core.Camera;
 import com.google.ar.core.Frame;
@@ -53,7 +53,7 @@ import com.google.ar.sceneform.Node;
 import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.Color;
-//import com.google.ar.sceneform.rendering.Material;
+import com.google.ar.sceneform.rendering.Material;
 import com.google.ar.sceneform.rendering.MaterialFactory;
 import com.google.ar.sceneform.rendering.ModelRenderable;
 import com.google.ar.sceneform.rendering.Renderable;
@@ -61,9 +61,10 @@ import com.google.ar.sceneform.rendering.ShapeFactory;
 //import com.google.ar.sceneform.rendering.Texture;
 import com.google.ar.sceneform.rendering.ViewRenderable;
 import com.google.ar.sceneform.ux.ArFragment;
-//import com.google.ar.sceneform.ux.TransformableNode;
+import com.google.ar.sceneform.ux.TransformableNode;
 
-//import java.lang.ref.WeakReference;
+import java.io.File;
+import java.lang.ref.WeakReference;
 import java.text.DecimalFormat;
 import java.util.Arrays;
 import java.util.List;
@@ -148,6 +149,32 @@ public class GltfActivity extends AppCompatActivity {
 //											return null;
 //										});
 
+		WeakReference<GltfActivity> weakActivity = new WeakReference<>(this);
+		ModelRenderable.builder()
+						.setSource(
+										this,
+										Uri.parse("woodTile.glb"))
+						.setIsFilamentGltf(true)
+						.build()
+						.thenAccept(
+										modelRenderable -> {
+											Log.d(TAG, "heejun 3d model load SUCCESS");
+
+											GltfActivity activity = weakActivity.get();
+											if (activity != null) {
+												activity.renderable = modelRenderable;
+											}
+										})
+						.exceptionally(
+										throwable -> {
+											Log.d(TAG, "heejun Unable to load Tiger renderable");
+											Toast toast =
+															Toast.makeText(this, "Unable to load Tiger renderable", Toast.LENGTH_LONG);
+											toast.setGravity(Gravity.CENTER, 0, 0);
+											toast.show();
+											return null;
+										});
+
 		arFragment.setOnTapArPlaneListener(
 						(HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
 							int val = motionEvent.getActionMasked();
@@ -178,11 +205,12 @@ public class GltfActivity extends AppCompatActivity {
 								Vector3 point2 = lastAnchorNode.get(1).getWorldPosition();
 								drawLineNDistance(point1, point2, anchorNode);
 
-
 								lastAnchorNode = new ArrayList<AnchorNode>();
 							}
 						});
-//		original sample source
+
+
+//		draw tile
 //        (HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
 //          if (renderable == null) {
 //            return;
@@ -197,19 +225,6 @@ public class GltfActivity extends AppCompatActivity {
 //          TransformableNode model = new TransformableNode(arFragment.getTransformationSystem());
 //          model.setParent(anchorNode);
 //          model.setRenderable(renderable);
-//          model.select();
-//
-//          FilamentAsset filamentAsset = model.getRenderableInstance().getFilamentAsset();
-//          if (filamentAsset.getAnimator().getAnimationCount() > 0) {
-//            animators.add(new AnimationInstance(filamentAsset.getAnimator(), 0, System.nanoTime()));
-//          }
-//
-//          Color color = colors.get(nextColor);
-//          nextColor++;
-//          for (int i = 0; i < renderable.getSubmeshCount(); ++i) {
-//            Material material = renderable.getMaterial(i);
-//            material.setFloat4("baseColorFactor", color);
-//          }
 //
 //          Node distanceNode = new Node();
 //          distanceNode.setParent(model);
@@ -322,70 +337,73 @@ public class GltfActivity extends AppCompatActivity {
 						);
 	}
 
+	private void drawDistanceLabel(Vector3 point1, Vector3 point2, AnchorNode anchorNode){
+		// represent distance Label
+		double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
+
+		Node distanceNode = new Node();
+		distanceNode.setParent(lastAnchorNode.get(0));
+		distanceNode.setEnabled(false);
+//			distanceNode.setLocalPosition(Vector3.add(Vector3.subtract(point2, point1).scaled(.5f), new Vector3(0, 0.05f, 0)));
+		distanceNode.setLocalPosition(Vector3.subtract(point2, point1).scaled(.5f));
+
+		final Vector3 labelPoint = distanceNode.getWorldPosition();
+		final Vector3 zAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 0, 1));
+		final Vector3 difference = Vector3.subtract(labelPoint, zAxisPoint);
+		final Vector3 directionFromTopToBottom = difference.normalized();
+		final Quaternion rotationFromAToB =
+						Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
+
+		final Vector3 yAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 1, 0));
+		final Vector3 diffWithFloor = Vector3.subtract(labelPoint, yAxisPoint);
+		final Quaternion rotationToFloor =
+						Quaternion.lookRotation(diffWithFloor, Vector3.forward());
+
+
+		ViewRenderable.builder()
+						.setView(this, R.layout.tiger_card_view)
+						.build()
+						.thenAccept(
+										(renderable) -> {
+											String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
+											((TextView) renderable.getView()).setText(roundDownDistance);
+//												renderable.setShadowCaster(false);
+//												renderable.setShadowReceiver(false);
+											distanceNode.setRenderable(renderable);
+											distanceNode.setEnabled(true);
+											distanceNode.setWorldRotation(rotationFromAToB);
+											distanceNode.setWorldRotation(rotationToFloor);
+										})
+						.exceptionally(
+										(throwable) -> {
+											throw new AssertionError("Could not load card view.", throwable);
+										}
+						);
+
+		// 라벨위치 기준 테스트용 표시
+		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
+						.thenAccept(
+										material -> {
+											ModelRenderable model = ShapeFactory.makeCylinder(
+															.005f,
+															.0001f,
+															Vector3.zero(), material);
+
+											Node node = new Node();
+											node.setParent(distanceNode);
+											node.setRenderable(model);
+											node.setWorldPosition(distanceNode.getWorldPosition());
+											nextColor = (nextColor + 1) % colors.size();
+										}
+						);
+		drawLine(new Color(0, 255, 0), labelPoint, zAxisPoint, anchorNode);
+	}
+
 	private void drawLineNDistance(Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
 		//drawLine
 		if (lastAnchorNode.size() >= 2) {
 			drawLine(new Color(255, 255, 244), point1, point2, anchorNode);
-
-			// represent distance Label
-			double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
-
-			Node distanceNode = new Node();
-			distanceNode.setParent(lastAnchorNode.get(0));
-			distanceNode.setEnabled(false);
-//			distanceNode.setLocalPosition(Vector3.add(Vector3.subtract(point2, point1).scaled(.5f), new Vector3(0, 0.05f, 0)));
-			distanceNode.setLocalPosition(Vector3.subtract(point2, point1).scaled(.5f));
-
-			final Vector3 labelPoint = distanceNode.getWorldPosition();
-			final Vector3 zAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 0, 1));
-			final Vector3 difference = Vector3.subtract(labelPoint, zAxisPoint);
-			final Vector3 directionFromTopToBottom = difference.normalized();
-			final Quaternion rotationFromAToB =
-							Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
-
-			final Vector3 yAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 1, 0));
-			final Vector3 diffWithFloor = Vector3.subtract(labelPoint, yAxisPoint);
-			final Quaternion rotationToFloor =
-							Quaternion.lookRotation(diffWithFloor, Vector3.forward());
-
-
-			ViewRenderable.builder()
-							.setView(this, R.layout.tiger_card_view)
-							.build()
-							.thenAccept(
-											(renderable) -> {
-												String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
-												((TextView) renderable.getView()).setText(roundDownDistance);
-//												renderable.setShadowCaster(false);
-//												renderable.setShadowReceiver(false);
-												distanceNode.setRenderable(renderable);
-												distanceNode.setEnabled(true);
-												distanceNode.setWorldRotation(rotationFromAToB);
-												distanceNode.setWorldRotation(rotationToFloor);
-											})
-							.exceptionally(
-											(throwable) -> {
-												throw new AssertionError("Could not load card view.", throwable);
-											}
-							);
-
-			// 라벨위치 기준 테스트용 표시
-			MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
-							.thenAccept(
-											material -> {
-												ModelRenderable model = ShapeFactory.makeCylinder(
-																.005f,
-																.0001f,
-																Vector3.zero(), material);
-
-												Node node = new Node();
-												node.setParent(distanceNode);
-												node.setRenderable(model);
-												node.setWorldPosition(distanceNode.getWorldPosition());
-												nextColor = (nextColor + 1) % colors.size();
-											}
-							);
-			drawLine(new Color(0, 255, 0), labelPoint, zAxisPoint, anchorNode);
+			drawDistanceLabel(point1, point2, anchorNode);
 		}
 	}
 }
