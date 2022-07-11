@@ -148,32 +148,8 @@ public class GltfActivity extends AppCompatActivity {
 //											toast.show();
 //											return null;
 //										});
+		load3DObject("woodTile.glb");
 
-		WeakReference<GltfActivity> weakActivity = new WeakReference<>(this);
-		ModelRenderable.builder()
-						.setSource(
-										this,
-										Uri.parse("woodTile.glb"))
-						.setIsFilamentGltf(true)
-						.build()
-						.thenAccept(
-										modelRenderable -> {
-											Log.d(TAG, "heejun 3d model load SUCCESS");
-
-											GltfActivity activity = weakActivity.get();
-											if (activity != null) {
-												activity.renderable = modelRenderable;
-											}
-										})
-						.exceptionally(
-										throwable -> {
-											Log.d(TAG, "heejun Unable to load Tiger renderable");
-											Toast toast =
-															Toast.makeText(this, "Unable to load Tiger renderable", Toast.LENGTH_LONG);
-											toast.setGravity(Gravity.CENTER, 0, 0);
-											toast.show();
-											return null;
-										});
 
 		arFragment.setOnTapArPlaneListener(
 						(HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
@@ -203,7 +179,7 @@ public class GltfActivity extends AppCompatActivity {
 							if (lastAnchorNode.size() >= 2) {
 								Vector3 point1 = lastAnchorNode.get(0).getWorldPosition();
 								Vector3 point2 = lastAnchorNode.get(1).getWorldPosition();
-								drawLineNDistance(point1, point2, anchorNode);
+								drawLineNTile(point1, point2, anchorNode);
 
 								lastAnchorNode = new ArrayList<AnchorNode>();
 							}
@@ -300,6 +276,31 @@ public class GltfActivity extends AppCompatActivity {
 		return true;
 	}
 
+	private void load3DObject (String path) {
+		// load 3d object
+		WeakReference<GltfActivity> weakActivity = new WeakReference<>(this);
+		ModelRenderable.builder()
+						.setSource(
+										this,
+										Uri.parse(path))
+						.setIsFilamentGltf(true)
+						.build()
+						.thenAccept(
+										modelRenderable -> {
+											GltfActivity activity = weakActivity.get();
+											if (activity != null) {
+												activity.renderable = modelRenderable;
+											}
+										})
+						.exceptionally(
+										throwable -> {
+											Toast toast =
+															Toast.makeText(this, "Unable to load Tiger renderable", Toast.LENGTH_LONG);
+											toast.setGravity(Gravity.CENTER, 0, 0);
+											toast.show();
+											return null;
+										});
+	}
 
 	private double getDistanceMeters(Vector3 v1, Vector3 v2) {
 		float distanceX = v1.x - v2.x;
@@ -399,11 +400,16 @@ public class GltfActivity extends AppCompatActivity {
 		drawLine(new Color(0, 255, 0), labelPoint, zAxisPoint, anchorNode);
 	}
 
-	private void drawLineNDistance(Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
+	private void set3DTiles(Vector3 point1, Vector3 point2, AnchorNode anchorNode){
+
+	}
+
+	private void drawLineNTile(Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
 		//drawLine
 		if (lastAnchorNode.size() >= 2) {
 			drawLine(new Color(255, 255, 244), point1, point2, anchorNode);
 			drawDistanceLabel(point1, point2, anchorNode);
+			set3DTiles(point1, point2, anchorNode);
 		}
 	}
 }
