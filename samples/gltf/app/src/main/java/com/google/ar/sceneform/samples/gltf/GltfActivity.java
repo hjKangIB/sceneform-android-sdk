@@ -80,6 +80,10 @@ public class GltfActivity extends AppCompatActivity {
 	private ArFragment arFragment;
 	private Renderable renderable;
 	private List<AnchorNode> lastAnchorNode = new ArrayList<AnchorNode>();
+	private float tileWidth = 10.0f; // x (단위 cm)
+	private float tileHeight = 20.0f; // z
+	private float tileDepth = 0.1f; // y
+
 
 	private final List<Color> colors =
 					Arrays.asList(
@@ -244,7 +248,7 @@ public class GltfActivity extends AppCompatActivity {
 						);
 	}
 
-	private void drawDistanceLabel(Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
+	private double drawDistanceLabel(Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
 		// represent distance Label
 		double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
 
@@ -255,17 +259,19 @@ public class GltfActivity extends AppCompatActivity {
 		distanceNode.setLocalPosition(Vector3.subtract(point2, point1).scaled(.5f));
 
 		final Vector3 labelPoint = distanceNode.getWorldPosition();
-		final Vector3 zAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 0, 1));
-		final Vector3 difference = Vector3.subtract(labelPoint, zAxisPoint);
-		final Vector3 directionFromTopToBottom = difference.normalized();
-		final Quaternion rotationFromAToB =
-						Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
-
+		final Vector3 xAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(1, 0, 0));
+//		final Vector3 zAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 0, 1));
+//		final Vector3 difference = Vector3.subtract(labelPoint, zAxisPoint);
+//		final Vector3 directionFromTopToBottom = difference.normalized();
+//		final Quaternion rotationFromAToB =
+//						Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
+//
 		final Vector3 yAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 1, 0));
 		final Vector3 diffWithFloor = Vector3.subtract(labelPoint, yAxisPoint);
 		final Quaternion rotationToFloor =
 						Quaternion.lookRotation(diffWithFloor, Vector3.forward());
 
+//		final Quaternion fixedLabelAngle = Quaternion.axisAngle(new Vector3(0, 1, 0), 0);
 
 		ViewRenderable.builder()
 						.setView(this, R.layout.tiger_card_view)
@@ -278,8 +284,9 @@ public class GltfActivity extends AppCompatActivity {
 //												renderable.setShadowReceiver(false);
 											distanceNode.setRenderable(renderable);
 											distanceNode.setEnabled(true);
-											distanceNode.setWorldRotation(rotationFromAToB);
+//											distanceNode.setWorldRotation(rotationFromAToB);
 											distanceNode.setWorldRotation(rotationToFloor);
+//											distanceNode.setWorldRotation(fixedLabelAngle);
 										})
 						.exceptionally(
 										(throwable) -> {
@@ -303,10 +310,11 @@ public class GltfActivity extends AppCompatActivity {
 											nextColor = (nextColor + 1) % colors.size();
 										}
 						);
-		drawLine(new Color(0, 255, 0), labelPoint, zAxisPoint, anchorNode);
+		drawLine(new Color(255, 0, 0), labelPoint, xAxisPoint, anchorNode);
+		return distanceCm;
 	}
 
-	private void set3DTiles(Vector3 point1, Vector3 point2) {
+	private void set3DTiles(Vector3 point1, Vector3 point2, double distanceCm) {
 		//		draw tile
 		if (renderable == null) {
 			return;
@@ -314,25 +322,41 @@ public class GltfActivity extends AppCompatActivity {
 		AnchorNode anchorNode = lastAnchorNode.get(0);
 		anchorNode.setParent(arFragment.getArSceneView().getScene());
 
-		// Create the transformable model and add it to the anchor.
-		TransformableNode model = new TransformableNode(arFragment.getTransformationSystem());
-		model.setParent(anchorNode);
-		model.setRenderable(renderable);
+		int rowCnt = (int) Math.floor(distanceCm / tileWidth);
+		if (rowCnt > 0) {
+			List<Node> nodeBuf = new ArrayList<Node>();
 
-		final Vector3 difference = Vector3.subtract(point1, point2);
-		final Vector3 directionFromTopToBottom = difference.normalized();
-		final Quaternion rotationFromAToB =
-						Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
-		Quaternion rotation = Quaternion.axisAngle(new Vector3(0f, 1.0f, 0f), -90);
-		model.setWorldRotation(Quaternion.multiply(rotationFromAToB, rotation));
+			Node pivotNode = new Node();
+			pivotNode.setParent(anchorNode);
+			pivotNode.setRenderable(renderable);
+			pivotNode.setWorldPosition(anchorNode.getWorldPosition());
+
+			for (int i = 0; i < rowCnt; i++) {
+				// Create the transformable model and add it to the anchor.
+				Node model = new Node();
+				model.setParent(pivotNode);
+				model.setRenderable(renderable);
+//				model.setWorldPosition(Vector3.add(pivotNode.getWorldPosition(), new Vector3((tileWidth / 100) * i, 0, 0)));
+				model.setLocalPosition(new Vector3((tileWidth / 100) * i, 0, 0));
+				nodeBuf.add(model);
+			}
+
+			final Vector3 difference = Vector3.subtract(point1, point2);
+			final Vector3 directionFromTopToBottom = difference.normalized();
+			final Quaternion rotationFromAToB =
+							Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
+			Quaternion rotation = Quaternion.axisAngle(new Vector3(0f, 1.0f, 0f), -90);
+			pivotNode.setWorldRotation(Quaternion.multiply(rotationFromAToB, rotation));
+		}
+
 	}
 
 	private void drawLineNTile(Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
 		//drawLine
 		if (lastAnchorNode.size() >= 2) {
 			drawLine(new Color(255, 255, 244), point1, point2, anchorNode);
-			drawDistanceLabel(point1, point2, anchorNode);
-			set3DTiles(point1, point2);
+			double distanceCm = drawDistanceLabel(point1, point2, anchorNode);
+			set3DTiles(point1, point2, distanceCm);
 		}
 	}
 }
