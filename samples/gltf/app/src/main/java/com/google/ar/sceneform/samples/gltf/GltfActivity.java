@@ -15,60 +15,55 @@
  */
 package com.google.ar.sceneform.samples.gltf;
 
-import static com.google.ar.sceneform.rendering.MaterialFactory.MATERIAL_TEXTURE;
-import static com.google.ar.sceneform.rendering.PlaneRenderer.MATERIAL_UV_SCALE;
-import static java.util.concurrent.TimeUnit.SECONDS;
-
 import android.app.Activity;
 import android.app.ActivityManager;
 import android.content.Context;
-//import android.media.Image;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Build.VERSION_CODES;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
-import android.util.ArraySet;
 import android.util.Log;
 import android.view.Gravity;
-//import android.view.LayoutInflater;
 import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
-//import com.google.android.filament.gltfio.Animator;
-//import com.google.android.filament.gltfio.FilamentAsset;
 import com.google.ar.core.Anchor;
-import com.google.ar.core.Camera;
 import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
-//import com.google.ar.core.Pose;
-//import com.google.ar.core.Session;
-//import com.google.ar.core.TrackingState;
 import com.google.ar.sceneform.AnchorNode;
-//import com.google.ar.sceneform.ArSceneView;
+import com.google.ar.sceneform.Camera;
+import com.google.ar.sceneform.HitTestResult;
 import com.google.ar.sceneform.Node;
+import com.google.ar.sceneform.collision.Ray;
 import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.Color;
-import com.google.ar.sceneform.rendering.Material;
 import com.google.ar.sceneform.rendering.MaterialFactory;
 import com.google.ar.sceneform.rendering.ModelRenderable;
 import com.google.ar.sceneform.rendering.Renderable;
 import com.google.ar.sceneform.rendering.ShapeFactory;
-//import com.google.ar.sceneform.rendering.Texture;
 import com.google.ar.sceneform.rendering.ViewRenderable;
 import com.google.ar.sceneform.ux.ArFragment;
-import com.google.ar.sceneform.ux.TransformableNode;
 
 import java.lang.ref.WeakReference;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import java.util.ArrayList;
+//import android.media.Image;
+//import android.view.LayoutInflater;
+//import com.google.android.filament.gltfio.Animator;
+//import com.google.android.filament.gltfio.FilamentAsset;
+//import com.google.ar.core.Pose;
+//import com.google.ar.core.Session;
+//import com.google.ar.core.TrackingState;
+//import com.google.ar.sceneform.ArSceneView;
+//import com.google.ar.sceneform.rendering.Texture;
 
 /**
  * This is an example activity that uses the Sceneform UX package to make common AR tasks easier.
@@ -83,6 +78,8 @@ public class GltfActivity extends AppCompatActivity {
 	private float tileWidth = 10.0f; // x (단위 cm)
 	private float tileHeight = 20.0f; // z
 	private float tileDepth = 0.1f; // y
+
+	private AnchorNode reticle;
 
 
 	private final List<Color> colors =
@@ -112,11 +109,13 @@ public class GltfActivity extends AppCompatActivity {
 		arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
 
 		load3DObject("woodTile.glb");
-
 		arFragment.setOnTapArPlaneListener(
 						(HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
 							int val = motionEvent.getActionMasked();
 							float axisVal = motionEvent.getAxisValue(MotionEvent.AXIS_X, motionEvent.getPointerId(motionEvent.getPointerCount() - 1));
+
+							sendToastMessage("카메라에서 선택 바닥 지점까지 거리는 \n" + Float.toString(Math.round(hitResult.getDistance() * 1000) / 10) + "cm 입니다.");
+
 							Anchor anchor = hitResult.createAnchor();
 							AnchorNode anchorNode = new AnchorNode(anchor);
 							lastAnchorNode.add(anchorNode);
@@ -152,8 +151,46 @@ public class GltfActivity extends AppCompatActivity {
 						.getScene()
 						.addOnUpdateListener(
 										frameTime -> {
-											Frame frame = arFragment.getArSceneView().getArFrame();
-											Camera camera = frame.getCamera();
+//											Frame frame = arFragment.getArSceneView().getArFrame();
+//											Camera camera = frame.getCamera();
+
+											Camera camera = arFragment.getArSceneView().getScene().getCamera();
+											Ray ray = new Ray(camera.getWorldPosition(), camera.getForward());
+
+											HitTestResult hitTestResult = arFragment.getArSceneView().getScene().hitTest(ray);
+											double SOME_THRESHOLD = 10.0f;
+											if (hitTestResult.getNode() != null && hitTestResult.getDistance() <= SOME_THRESHOLD) {
+												if (reticle == null) {
+
+													reticle = new AnchorNode();
+													reticle.setParent(arFragment.getArSceneView().getScene());
+
+													MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(0, 0, 80))
+																	.thenAccept(
+																					material -> {
+																						ModelRenderable model = ShapeFactory.makeCylinder(
+																										.02f,
+																										.0001f,
+																										Vector3.zero(), material);
+//																						model.setShadowCaster(false);
+//																						model.setShadowReceiver(false);
+																						Node node = new Node();
+																						node.setParent(reticle);
+																						node.setRenderable(model);
+																						reticle.setRenderable(model);
+																						nextColor = (nextColor + 1) % colors.size();
+																					}
+																	);
+
+												}
+												reticle.setWorldPosition(hitTestResult.getPoint());
+											} else{
+												if( reticle != null){
+													reticle.setParent(null);
+													reticle.setRenderable(null);
+													reticle = null;
+												}
+											}
 										});
 	} // onCreate end
 
@@ -359,5 +396,13 @@ public class GltfActivity extends AppCompatActivity {
 			set3DTiles(point1, point2, distanceCm);
 		}
 	}
+
+	private void sendToastMessage(String message) {
+		Toast toast =
+						Toast.makeText(this, message, Toast.LENGTH_LONG);
+		toast.setGravity(Gravity.BOTTOM, 0, 0);
+		toast.show();
+	}
+
 }
 
