@@ -31,6 +31,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import com.google.ar.core.Anchor;
+import com.google.ar.core.CameraConfig;
 import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
@@ -38,6 +39,7 @@ import com.google.ar.sceneform.AnchorNode;
 import com.google.ar.sceneform.Camera;
 import com.google.ar.sceneform.HitTestResult;
 import com.google.ar.sceneform.Node;
+import com.google.ar.sceneform.Scene;
 import com.google.ar.sceneform.collision.Ray;
 import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
@@ -154,43 +156,40 @@ public class GltfActivity extends AppCompatActivity {
 //											Frame frame = arFragment.getArSceneView().getArFrame();
 //											Camera camera = frame.getCamera();
 
-											Camera camera = arFragment.getArSceneView().getScene().getCamera();
-											Ray ray = new Ray(camera.getWorldPosition(), camera.getForward());
+											Scene scene = arFragment.getArSceneView().getScene();
 
-											HitTestResult hitTestResult = arFragment.getArSceneView().getScene().hitTest(ray);
+											Vector3 camForward = scene.getCamera().getForward();
+											Vector3 camWorldPosition = scene.getCamera().getWorldPosition();
+
+											Vector3 camLookPosition = Vector3.add(camWorldPosition, camForward);
+
 											double SOME_THRESHOLD = 10.0f;
-											if (hitTestResult.getNode() != null && hitTestResult.getDistance() <= SOME_THRESHOLD) {
-												if (reticle == null) {
 
-													reticle = new AnchorNode();
-													reticle.setParent(arFragment.getArSceneView().getScene());
+											if (reticle == null) {
 
-													MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(0, 0, 80))
-																	.thenAccept(
-																					material -> {
-																						ModelRenderable model = ShapeFactory.makeCylinder(
-																										.02f,
-																										.0001f,
-																										Vector3.zero(), material);
+												reticle = new AnchorNode();
+												reticle.setParent(arFragment.getArSceneView().getScene());
+
+												MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(0, 0, 80))
+																.thenAccept(
+																				material -> {
+																					ModelRenderable model = ShapeFactory.makeCylinder(
+																									.005f,
+																									.0001f,
+																									Vector3.zero(), material);
 //																						model.setShadowCaster(false);
 //																						model.setShadowReceiver(false);
-																						Node node = new Node();
-																						node.setParent(reticle);
-																						node.setRenderable(model);
-																						reticle.setRenderable(model);
-																						nextColor = (nextColor + 1) % colors.size();
-																					}
-																	);
+																					Node node = new Node();
+																					node.setParent(reticle);
+																					node.setRenderable(model);
+																					reticle.setRenderable(model);
+																					nextColor = (nextColor + 1) % colors.size();
+																				}
+																);
 
-												}
-												reticle.setWorldPosition(hitTestResult.getPoint());
-											} else{
-												if( reticle != null){
-													reticle.setParent(null);
-													reticle.setRenderable(null);
-													reticle = null;
-												}
 											}
+											reticle.setWorldPosition(camLookPosition);
+
 										});
 	} // onCreate end
 
