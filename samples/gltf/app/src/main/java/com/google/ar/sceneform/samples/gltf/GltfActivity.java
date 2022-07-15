@@ -68,6 +68,7 @@ public class GltfActivity extends AppCompatActivity {
 	private ArFragment arFragment;
 	private Renderable renderable;
 	private List<AnchorNode> lastAnchorNode = new ArrayList<AnchorNode>();
+	private List<Double> distances = new ArrayList<Double>();
 	private float tileWidth = 10.0f; // x (단위 cm)
 	private float tileHeight = 20.0f; // z
 	private float tileDepth = 0.1f; // y
@@ -303,9 +304,10 @@ public class GltfActivity extends AppCompatActivity {
 						);
 	}
 
-	private double drawDistanceLabel(Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
+	private double drawDistanceLabel(Vector3 point1, Vector3 point2, AnchorNode curAnchorNode) {
 		// represent distance Label
 		double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
+		distances.set(distances.size()-1, distanceCm);
 
 		Node distanceNode = new Node();
 		distanceNode.setParent(lastAnchorNode.get(0));
@@ -350,26 +352,26 @@ public class GltfActivity extends AppCompatActivity {
 						);
 
 		// 라벨위치 기준 테스트용 표시
-		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
-						.thenAccept(
-										material -> {
-											ModelRenderable model = ShapeFactory.makeCylinder(
-															.005f,
-															.0001f,
-															Vector3.zero(), material);
-
-											Node node = new Node();
-											node.setParent(distanceNode);
-											node.setRenderable(model);
-											node.setWorldPosition(distanceNode.getWorldPosition());
-											nextColor = (nextColor + 1) % colors.size();
-										}
-						);
-		drawLine(new Color(255, 0, 0), labelPoint, xAxisPoint, anchorNode);
+//		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
+//						.thenAccept(
+//										material -> {
+//											ModelRenderable model = ShapeFactory.makeCylinder(
+//															.005f,
+//															.0001f,
+//															Vector3.zero(), material);
+//
+//											Node node = new Node();
+//											node.setParent(distanceNode);
+//											node.setRenderable(model);
+//											node.setWorldPosition(distanceNode.getWorldPosition());
+//											nextColor = (nextColor + 1) % colors.size();
+//										}
+//						);
+//		drawLine(new Color(255, 0, 0), labelPoint, xAxisPoint, curAnchorNode);
 		return distanceCm;
 	}
 
-	private void set3DTiles(Vector3 point1, Vector3 point2, double distanceCm) {
+	private void set3DTiles() {
 		//		draw tile
 		if (renderable == null) {
 			return;
@@ -377,24 +379,32 @@ public class GltfActivity extends AppCompatActivity {
 		AnchorNode anchorNode = lastAnchorNode.get(0);
 		anchorNode.setParent(arFragment.getArSceneView().getScene());
 
-		int rowCnt = (int) Math.floor(distanceCm / tileWidth);
-		if (rowCnt > 0) {
+		int colCnt = (int) Math.floor(distances.get(1) / tileWidth);
+		int rowCnt = (int) Math.floor(distances.get(2) / tileHeight);
+
+		if (rowCnt > 0 && colCnt > 0) {
 			List<Node> nodeBuf = new ArrayList<Node>();
+
+			Vector3 point1 = lastAnchorNode.get(0).getWorldPosition();
+			Vector3 point2 = lastAnchorNode.get(1).getWorldPosition();
 
 			Node pivotNode = new Node();
 			pivotNode.setParent(anchorNode);
 			pivotNode.setRenderable(renderable);
 			pivotNode.setWorldPosition(anchorNode.getWorldPosition());
 
-			for (int i = 0; i < rowCnt; i++) {
-				// Create the transformable model and add it to the anchor.
-				Node model = new Node();
-				model.setParent(pivotNode);
-				model.setRenderable(renderable);
+			for (int i = 0; i< rowCnt; i++){
+				for (int j = 0; j < colCnt; j++) {
+					// Create the transformable model and add it to the anchor.
+					Node model = new Node();
+					model.setParent(pivotNode);
+					model.setRenderable(renderable);
 //				model.setWorldPosition(Vector3.add(pivotNode.getWorldPosition(), new Vector3((tileWidth / 100) * i, 0, 0)));
-				model.setLocalPosition(new Vector3((tileWidth / 100) * i, 0, 0));
-				nodeBuf.add(model);
+					model.setLocalPosition(new Vector3((tileWidth / 100) * j, 0, (tileHeight / 100) * i));
+					nodeBuf.add(model);
+				}
 			}
+
 
 			final Vector3 difference = Vector3.subtract(point1, point2);
 			final Vector3 directionFromTopToBottom = difference.normalized();
@@ -406,12 +416,14 @@ public class GltfActivity extends AppCompatActivity {
 
 	}
 
-	private void drawLineNTile(Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
+	private void drawLineNTile(Vector3 point1, Vector3 point2, AnchorNode curAnchorNode) {
 		//drawLine
 		if (lastAnchorNode.size() >= 2) {
-			drawLine(new Color(255, 255, 244), point1, point2, anchorNode);
-			double distanceCm = drawDistanceLabel(point1, point2, anchorNode);
-			set3DTiles(point1, point2, distanceCm);
+			drawLine(new Color(255, 255, 244), point1, point2, curAnchorNode);
+			double distanceCm = drawDistanceLabel(point1, point2, curAnchorNode);
+			if(lastAnchorNode.size() == 3){
+				set3DTiles();
+			}
 		}
 	}
 
@@ -429,8 +441,8 @@ public class GltfActivity extends AppCompatActivity {
 		float viewWidth = arFragment.getArSceneView().getWidth() * .5f;
 		float viewHeight = arFragment.getArSceneView().getHeight() * .5f;
 
-		Camera camera = arFragment.getArSceneView().getScene().getCamera();
-		Ray ray = new Ray(camera.getWorldPosition(), camera.getForward());
+//		Camera camera = arFragment.getArSceneView().getScene().getCamera();
+//		Ray ray = new Ray(camera.getWorldPosition(), camera.getForward());
 
 
 		List<HitResult> hitResultList = frame.hitTest(viewWidth, viewHeight);
@@ -445,11 +457,12 @@ public class GltfActivity extends AppCompatActivity {
 							== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
 			) {
 
-
+				sendToastMessage("카메라에서 선택 바닥 지점까지 거리는 \n" + Float.toString(Math.round(hit.getDistance() * 1000) / 10) + "cm 입니다.");
+				// mark anchor point
 				AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
 				anchorNode.setParent(arFragment.getArSceneView().getScene());
 				lastAnchorNode.add(anchorNode);
-
+				distances.add(.0);
 
 				MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
 								.thenAccept(
