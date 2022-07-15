@@ -29,7 +29,6 @@ import android.view.MotionEvent;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import com.google.ar.core.Anchor;
 import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
@@ -39,7 +38,6 @@ import com.google.ar.sceneform.AnchorNode;
 import com.google.ar.sceneform.Camera;
 import com.google.ar.sceneform.HitTestResult;
 import com.google.ar.sceneform.Node;
-import com.google.ar.sceneform.Scene;
 import com.google.ar.sceneform.collision.Ray;
 import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
@@ -56,16 +54,9 @@ import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
+import java.util.concurrent.BlockingQueue;
 
-//import android.media.Image;
-//import android.view.LayoutInflater;
-//import com.google.android.filament.gltfio.Animator;
-//import com.google.android.filament.gltfio.FilamentAsset;
-//import com.google.ar.core.Pose;
-//import com.google.ar.core.Session;
-//import com.google.ar.core.TrackingState;
-//import com.google.ar.sceneform.ArSceneView;
-//import com.google.ar.sceneform.rendering.Texture;
 
 /**
  * This is an example activity that uses the Sceneform UX package to make common AR tasks easier.
@@ -80,9 +71,10 @@ public class GltfActivity extends AppCompatActivity {
 	private float tileWidth = 10.0f; // x (단위 cm)
 	private float tileHeight = 20.0f; // z
 	private float tileDepth = 0.1f; // y
-	private Boolean reticleHitLost = true;
-	private AnchorNode reticle = null;
-	private Node pacemakingReticle = null;
+	private Node reticle = null;
+
+
+	private final BlockingQueue<MotionEvent> queuedSingleTaps = new ArrayBlockingQueue<>(16);
 
 
 	private final List<Color> colors =
@@ -149,93 +141,75 @@ public class GltfActivity extends AppCompatActivity {
 //							}
 //						});
 
-		arFragment.setOnTapArPlaneListener(
-						(HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
-							// hitTest
-							Frame frame = arFragment.getArSceneView().getArFrame();
-							float viewWidth = arFragment.getArSceneView().getWidth() * .5f;
-							float viewHeight = arFragment.getArSceneView().getHeight() * .5f;
+//		arFragment.setOnTapArPlaneListener(
+//						(HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
+//							// hitTest
+//							Frame frame = arFragment.getArSceneView().getArFrame();
+//							float viewWidth = arFragment.getArSceneView().getWidth() * .5f;
+//							float viewHeight = arFragment.getArSceneView().getHeight() * .5f;
+//
+//							Camera camera = arFragment.getArSceneView().getScene().getCamera();
+//							Ray ray = new Ray(camera.getWorldPosition(), camera.getForward());
+//
+//
+//							List<HitResult> hitResultList = frame.hitTest(viewWidth, viewHeight);
+//
+//							for (HitResult hit : hitResultList) {
+//								Trackable trackable = hit.getTrackable();
+//								if ((trackable instanceof Plane
+//												&& ((Plane) trackable).isPoseInPolygon(hit.getHitPose())
+//												&& hit.getDistance() > 0)
+//												|| (trackable instanceof Point
+//												&& ((Point) trackable).getOrientationMode()
+//												== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
+//								) {
+//
+//
+//									AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
+//									anchorNode.setParent(arFragment.getArSceneView().getScene());
+//									lastAnchorNode.add(anchorNode);
+//
+//
+//									MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
+//													.thenAccept(
+//																	material -> {
+//																		ModelRenderable model = ShapeFactory.makeCylinder(
+//																						.01f,
+//																						.0001f,
+//																						Vector3.zero(), material);
+//
+//																		Node node = new Node();
+//																		node.setParent(anchorNode);
+//																		node.setRenderable(model);
+//																		nextColor = (nextColor + 1) % colors.size();
+//																	}
+//													);
+//
+//									if (lastAnchorNode.size() >= 2) {
+//										Vector3 point1 = lastAnchorNode.get(0).getWorldPosition();
+//										Vector3 point2 = lastAnchorNode.get(1).getWorldPosition();
+//										drawLineNTile(point1, point2, anchorNode);
+//
+//										lastAnchorNode = new ArrayList<AnchorNode>();
+//									}
+//									break;
+//								}
+//							}
+//
+//						}
+//		);
 
-							Camera camera = arFragment.getArSceneView().getScene().getCamera();
-							Ray ray = new Ray(camera.getWorldPosition(), camera.getForward());
-
-
-							List<HitResult> hitResultList = frame.hitTest(viewWidth, viewHeight);
-
-							for (HitResult hit : hitResultList) {
-								Trackable trackable = hit.getTrackable();
-								if ((trackable instanceof Plane
-												&& ((Plane) trackable).isPoseInPolygon(hit.getHitPose())
-												&& hit.getDistance() > 0)
-												|| (trackable instanceof Point
-												&& ((Point) trackable).getOrientationMode()
-												== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
-								) {
-
-
-									AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
-									anchorNode.setParent(arFragment.getArSceneView().getScene());
-									lastAnchorNode.add(anchorNode);
-
-
-									MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
-													.thenAccept(
-																	material -> {
-																		ModelRenderable model = ShapeFactory.makeCylinder(
-																						.01f,
-																						.0001f,
-																						Vector3.zero(), material);
-
-																		Node node = new Node();
-																		node.setParent(anchorNode);
-																		node.setRenderable(model);
-																		nextColor = (nextColor + 1) % colors.size();
-																	}
-													);
-
-									if (lastAnchorNode.size() >= 2) {
-										Vector3 point1 = lastAnchorNode.get(0).getWorldPosition();
-										Vector3 point2 = lastAnchorNode.get(1).getWorldPosition();
-										drawLineNTile(point1, point2, anchorNode);
-
-										lastAnchorNode = new ArrayList<AnchorNode>();
-									}
-									break;
-								}
+		arFragment.getArSceneView().getScene().setOnTouchListener(
+						(HitTestResult hitTestResult, MotionEvent motionEvent) -> {
+							if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+								handleTap();
+								return true;
 							}
-
+							return false;
 						}
 		);
 
-		arFragment
-						.getArSceneView()
-						.getScene()
-						.addOnUpdateListener(
-										frameTime -> {
-
-											Vector3 camWorldPos = arFragment.getArSceneView().getScene().getCamera().getWorldPosition();
-											Vector3 camLookForward = arFragment.getArSceneView().getScene().getCamera().getForward();
-
-											MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(255, 255, 0))
-															.thenAccept(
-																			material -> {
-
-																				if (pacemakingReticle == null)
-																					pacemakingReticle = new Node();
-
-																				ModelRenderable model = ShapeFactory.makeCylinder(
-																								.02f,
-																								.0001f,
-																								Vector3.zero(), material);
-																						model.setShadowCaster(false);
-																						model.setShadowReceiver(false);
-																				pacemakingReticle.setParent(arFragment.getArSceneView().getScene());
-																				pacemakingReticle.setRenderable(model);
-																				pacemakingReticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
-																			}
-															);
-										}
-						);
+		arFragment.getArSceneView().getScene().addOnUpdateListener(frameTime -> markReticle());
 	} // onCreate end
 
 	/**
@@ -449,7 +423,8 @@ public class GltfActivity extends AppCompatActivity {
 	}
 
 
-	private void onTapHandler() {
+	private void handleTap() {
+		// hitTest
 		Frame frame = arFragment.getArSceneView().getArFrame();
 		float viewWidth = arFragment.getArSceneView().getWidth() * .5f;
 		float viewHeight = arFragment.getArSceneView().getHeight() * .5f;
@@ -457,63 +432,78 @@ public class GltfActivity extends AppCompatActivity {
 		Camera camera = arFragment.getArSceneView().getScene().getCamera();
 		Ray ray = new Ray(camera.getWorldPosition(), camera.getForward());
 
+
 		List<HitResult> hitResultList = frame.hitTest(viewWidth, viewHeight);
 
 		for (HitResult hit : hitResultList) {
-			// If any plane, Oriented Point, or Instant Placement Point was hit, create an anchor.
 			Trackable trackable = hit.getTrackable();
-			// If a plane was hit, check that it was hit inside the plane polygon.
-			// DepthPoints are only returned if Config.DepthMode is set to AUTOMATIC.
 			if ((trackable instanceof Plane
 							&& ((Plane) trackable).isPoseInPolygon(hit.getHitPose())
 							&& hit.getDistance() > 0)
 							|| (trackable instanceof Point
 							&& ((Point) trackable).getOrientationMode()
 							== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
-//																|| (trackable instanceof InstantPlacementPoint)
-//																|| (trackable instanceof DepthPoint)
 			) {
-				if (reticleHitLost) {
 
-					reticleHitLost = false;
-					reticle = new AnchorNode(hit.createAnchor());
-					reticle.setParent(arFragment.getArSceneView().getScene());
 
-					MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(255, 255, 0))
-									.thenAccept(
-													material -> {
-														ModelRenderable model = ShapeFactory.makeCylinder(
-																		.02f,
-																		.0001f,
-																		Vector3.zero(), material);
-//																						model.setShadowCaster(false);
-//																						model.setShadowReceiver(false);
-														Node node = new Node();
-														node.setParent(reticle);
-														node.setRenderable(model);
-														reticle.setRenderable(model);
-														nextColor = (nextColor + 1) % colors.size();
-													}
-									);
-				}
-				break;
-			} else {
-				if (reticle != null) {
-//														reticle.setParent(null);
-//														reticle.setRenderable(null);
-//														reticle = null;
+				AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
+				anchorNode.setParent(arFragment.getArSceneView().getScene());
+				lastAnchorNode.add(anchorNode);
 
-					Vector3 camWorldPos = arFragment.getArSceneView().getScene().getCamera().getWorldPosition();
-					Vector3 camLookForward = arFragment.getArSceneView().getScene().getCamera().getForward();
-//					reticle.setAnchor(null);
-					reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
-					reticleHitLost = true;
+
+				MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
+								.thenAccept(
+												material -> {
+													ModelRenderable model = ShapeFactory.makeCylinder(
+																	.01f,
+																	.0001f,
+																	Vector3.zero(), material);
+
+													Node node = new Node();
+													node.setParent(anchorNode);
+													node.setRenderable(model);
+													nextColor = (nextColor + 1) % colors.size();
+												}
+								);
+
+				if (lastAnchorNode.size() == 2) {
+					Vector3 point1 = lastAnchorNode.get(0).getWorldPosition();
+					Vector3 point2 = lastAnchorNode.get(1).getWorldPosition();
+					drawLineNTile(point1, point2, anchorNode);
+				} else if(lastAnchorNode.size() == 3){
+					Vector3 point1 = lastAnchorNode.get(1).getWorldPosition();
+					Vector3 point2 = lastAnchorNode.get(2).getWorldPosition();
+					drawLineNTile(point1, point2, anchorNode);
+
+					lastAnchorNode = new ArrayList<AnchorNode>();
 				}
 				break;
 			}
 		}
+	}
 
+	private void markReticle() {
+		Vector3 camWorldPos = arFragment.getArSceneView().getScene().getCamera().getWorldPosition();
+		Vector3 camLookForward = arFragment.getArSceneView().getScene().getCamera().getForward();
 
+		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(255, 255, 0))
+						.thenAccept(
+										material -> {
+
+											if (reticle == null)
+												reticle = new Node();
+
+											ModelRenderable model = ShapeFactory.makeCylinder(
+															.01f,
+															.0001f,
+															Vector3.zero(), material);
+											model.setShadowCaster(false);
+											model.setShadowReceiver(false);
+											reticle.setParent(arFragment.getArSceneView().getScene());
+											reticle.setRenderable(model);
+											reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
+										}
+						);
 	}
 }
 
