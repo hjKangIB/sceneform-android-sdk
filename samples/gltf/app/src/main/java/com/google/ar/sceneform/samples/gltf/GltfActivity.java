@@ -104,7 +104,7 @@ public class GltfActivity extends AppCompatActivity {
 		setContentView(R.layout.activity_ux);
 		arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
 
-		load3DObject("woodTile.glb");
+		load3DObject("woodTile_tiny.glb");
 //		arFragment.setOnTapArPlaneListener(
 //						(HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
 //							int val = motionEvent.getActionMasked();
