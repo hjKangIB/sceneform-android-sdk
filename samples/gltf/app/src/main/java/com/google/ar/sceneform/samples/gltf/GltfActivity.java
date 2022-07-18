@@ -105,100 +105,6 @@ public class GltfActivity extends AppCompatActivity {
 		arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
 
 		load3DObject("woodTile_tiny.glb");
-//		arFragment.setOnTapArPlaneListener(
-//						(HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
-//							int val = motionEvent.getActionMasked();
-//							float axisVal = motionEvent.getAxisValue(MotionEvent.AXIS_X, motionEvent.getPointerId(motionEvent.getPointerCount() - 1));
-//
-//							sendToastMessage("카메라에서 선택 바닥 지점까지 거리는 \n" + Float.toString(Math.round(hitResult.getDistance() * 1000) / 10) + "cm 입니다.");
-//
-//							Anchor anchor = hitResult.createAnchor();
-//							AnchorNode anchorNode = new AnchorNode(anchor);
-//							lastAnchorNode.add(anchorNode);
-//							anchorNode.setParent(arFragment.getArSceneView().getScene());
-//
-//							MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
-//											.thenAccept(
-//															material -> {
-//																ModelRenderable model = ShapeFactory.makeCylinder(
-//																				.005f,
-//																				.0001f,
-//																				Vector3.zero(), material);
-//
-//																Node node = new Node();
-//																node.setParent(anchorNode);
-//																node.setRenderable(model);
-//																node.setWorldPosition(anchorNode.getWorldPosition());
-//																nextColor = (nextColor + 1) % colors.size();
-//															}
-//											);
-//
-//							if (lastAnchorNode.size() >= 2) {
-//								Vector3 point1 = lastAnchorNode.get(0).getWorldPosition();
-//								Vector3 point2 = lastAnchorNode.get(1).getWorldPosition();
-//								drawLineNTile(point1, point2, anchorNode);
-//
-//								lastAnchorNode = new ArrayList<AnchorNode>();
-//							}
-//						});
-
-//		arFragment.setOnTapArPlaneListener(
-//						(HitResult hitResult, Plane plane, MotionEvent motionEvent) -> {
-//							// hitTest
-//							Frame frame = arFragment.getArSceneView().getArFrame();
-//							float viewWidth = arFragment.getArSceneView().getWidth() * .5f;
-//							float viewHeight = arFragment.getArSceneView().getHeight() * .5f;
-//
-//							Camera camera = arFragment.getArSceneView().getScene().getCamera();
-//							Ray ray = new Ray(camera.getWorldPosition(), camera.getForward());
-//
-//
-//							List<HitResult> hitResultList = frame.hitTest(viewWidth, viewHeight);
-//
-//							for (HitResult hit : hitResultList) {
-//								Trackable trackable = hit.getTrackable();
-//								if ((trackable instanceof Plane
-//												&& ((Plane) trackable).isPoseInPolygon(hit.getHitPose())
-//												&& hit.getDistance() > 0)
-//												|| (trackable instanceof Point
-//												&& ((Point) trackable).getOrientationMode()
-//												== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
-//								) {
-//
-//
-//									AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
-//									anchorNode.setParent(arFragment.getArSceneView().getScene());
-//									lastAnchorNode.add(anchorNode);
-//
-//
-//									MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
-//													.thenAccept(
-//																	material -> {
-//																		ModelRenderable model = ShapeFactory.makeCylinder(
-//																						.01f,
-//																						.0001f,
-//																						Vector3.zero(), material);
-//
-//																		Node node = new Node();
-//																		node.setParent(anchorNode);
-//																		node.setRenderable(model);
-//																		nextColor = (nextColor + 1) % colors.size();
-//																	}
-//													);
-//
-//									if (lastAnchorNode.size() >= 2) {
-//										Vector3 point1 = lastAnchorNode.get(0).getWorldPosition();
-//										Vector3 point2 = lastAnchorNode.get(1).getWorldPosition();
-//										drawLineNTile(point1, point2, anchorNode);
-//
-//										lastAnchorNode = new ArrayList<AnchorNode>();
-//									}
-//									break;
-//								}
-//							}
-//
-//						}
-//		);
 
 		arFragment.getArSceneView().getScene().setOnTouchListener(
 						(HitTestResult hitTestResult, MotionEvent motionEvent) -> {
@@ -312,23 +218,15 @@ public class GltfActivity extends AppCompatActivity {
 		Node distanceNode = new Node();
 		distanceNode.setParent(lastAnchorNode.get(0));
 		distanceNode.setEnabled(false);
-//			distanceNode.setLocalPosition(Vector3.add(Vector3.subtract(point2, point1).scaled(.5f), new Vector3(0, 0.05f, 0)));
 		distanceNode.setLocalPosition(Vector3.subtract(point2, point1).scaled(.5f));
 
 		final Vector3 labelPoint = distanceNode.getWorldPosition();
 		final Vector3 xAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(1, 0, 0));
-//		final Vector3 zAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 0, 1));
-//		final Vector3 difference = Vector3.subtract(labelPoint, zAxisPoint);
-//		final Vector3 directionFromTopToBottom = difference.normalized();
-//		final Quaternion rotationFromAToB =
-//						Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
-//
+
 		final Vector3 yAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 1, 0));
 		final Vector3 diffWithFloor = Vector3.subtract(labelPoint, yAxisPoint);
 		final Quaternion rotationToFloor =
 						Quaternion.lookRotation(diffWithFloor, Vector3.forward());
-
-//		final Quaternion fixedLabelAngle = Quaternion.axisAngle(new Vector3(0, 1, 0), 0);
 
 		ViewRenderable.builder()
 						.setView(this, R.layout.tiger_card_view)
@@ -341,9 +239,7 @@ public class GltfActivity extends AppCompatActivity {
 //												renderable.setShadowReceiver(false);
 											distanceNode.setRenderable(renderable);
 											distanceNode.setEnabled(true);
-//											distanceNode.setWorldRotation(rotationFromAToB);
 											distanceNode.setWorldRotation(rotationToFloor);
-//											distanceNode.setWorldRotation(fixedLabelAngle);
 										})
 						.exceptionally(
 										(throwable) -> {
@@ -399,7 +295,6 @@ public class GltfActivity extends AppCompatActivity {
 					Node model = new Node();
 					model.setParent(pivotNode);
 					model.setRenderable(renderable);
-//				model.setWorldPosition(Vector3.add(pivotNode.getWorldPosition(), new Vector3((tileWidth / 100) * i, 0, 0)));
 					model.setLocalPosition(new Vector3((tileWidth / 100) * j, 0, (tileHeight / 100) * i));
 					nodeBuf.add(model);
 				}
@@ -441,9 +336,8 @@ public class GltfActivity extends AppCompatActivity {
 		float viewWidth = arFragment.getArSceneView().getWidth() * .5f;
 		float viewHeight = arFragment.getArSceneView().getHeight() * .5f;
 
-//		Camera camera = arFragment.getArSceneView().getScene().getCamera();
-//		Ray ray = new Ray(camera.getWorldPosition(), camera.getForward());
-
+		// Camera camera = arFragment.getArSceneView().getScene().getCamera();
+		// Ray ray = new Ray(camera.getWorldPosition(), camera.getForward());
 
 		List<HitResult> hitResultList = frame.hitTest(viewWidth, viewHeight);
 
