@@ -382,7 +382,9 @@ public class GltfActivity extends AppCompatActivity {
 					Vector3 point2 = lastAnchorNode.get(2).getWorldPosition();
 					drawLineNTile(point1, point2, anchorNode);
 
-					lastAnchorNode = new ArrayList<AnchorNode>();
+//					lastAnchorNode = new ArrayList<AnchorNode>();
+					lastAnchorNode.clear();
+					distances.clear();
 				}
 				break;
 			}
