@@ -3,10 +3,11 @@
     android:layout_width="wrap_content"
     android:layout_height="wrap_content"
     android:layout_weight="1"
-    android:background="@drawable/rounded_bg"
+    android:background="?attr/listChoiceBackgroundIndicator"
     android:gravity="center"
     android:orientation="vertical"
     android:padding="3dp"
     android:text="Tiger"
     android:textAlignment="center"
+    android:textColor="@android:color/background_light"
     android:textSize="8sp" />
