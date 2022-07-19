@@ -26,6 +26,7 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.ViewTreeObserver;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -246,23 +247,23 @@ public class GltfActivity extends AppCompatActivity {
 
 	private double drawDistanceLabel(Vector3 point1, Vector3 point2) {
 		// represent distance Label
-		AnchorNode curAnchorNode = lastAnchorNodes.get(lastAnchorNodes.size()-1);
+		AnchorNode curAnchorNode = lastAnchorNodes.get(lastAnchorNodes.size() - 1);
 		double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
 		distances.set(distances.size() - 1, distanceCm);
 
 		Node distanceNode = new Node();
-		distanceNode.setParent(lastAnchorNodes.get(lastAnchorNodes.size()-2));
+		distanceNode.setParent(lastAnchorNodes.get(lastAnchorNodes.size() - 2));
 		distanceNode.setEnabled(false);
-		distanceNode.setWorldPosition(new Vector3((point1.x + point2.x)/2, point1.y, (point1.z+point2.z)/2));
+		distanceNode.setWorldPosition(new Vector3((point1.x + point2.x) / 2, point1.y, (point1.z + point2.z) / 2));
 //				Vector3 a = distanceNode.getWorldPosition();
 //		distanceNode.setLocalPosition(Vector3.back().scaled(.1f));
 //		Vector3 b = distanceNode.getWorldPosition();
 //		drawLine(new Color(255, 255, 0), a, b, lastAnchorNodes.get(lastAnchorNodes.size()-2));
 
 		final Quaternion rotationToFloor = Quaternion.lookRotation(Vector3.up(), Vector3.forward());
-		Vector3 lineVector = point2.x > point1.x ? Vector3.subtract(point2, point1) :  Vector3.subtract(point1, point2);
+		Vector3 lineVector = point2.x > point1.x ? Vector3.subtract(point2, point1) : Vector3.subtract(point1, point2);
 		final Quaternion rotationToP2 = Quaternion.lookRotation(Vector3.cross(Vector3.up(), lineVector), Vector3.up());
-		Quaternion rotationResult = Quaternion.multiply( rotationToP2, rotationToFloor);
+		Quaternion rotationResult = Quaternion.multiply(rotationToP2, rotationToFloor);
 
 		ViewRenderable.builder()
 						.setView(this, R.layout.tiger_card_view)
@@ -270,7 +271,28 @@ public class GltfActivity extends AppCompatActivity {
 						.thenAccept(
 										(renderable) -> {
 											String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
-											((TextView) renderable.getView()).setText(roundDownDistance);
+											TextView label = ((TextView) renderable.getView());
+											label.setText(roundDownDistance);
+
+// 선위에 라벨을 그릴수 있도록 좌표 보정
+//											label.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+//												@Override
+//												public void onGlobalLayout() {
+//													label.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+//													label.getHeight(); //height is ready
+//
+//													float labelWidth = label.getWidth();
+//													float labelHeight = label.getHeight();
+//
+////											 removeOnGlobalLayoutListener(mParentLayout.getViewTreeObserver(), mGlobalLayoutListener);ㅌ
+//													sendToastMessage("width: " + Float.toString(labelWidth / 2 / 1000) + ", height: " + Float.toString(labelHeight / 2 / 1000));
+//
+//													Vector3 pos = distanceNode.getWorldPosition();
+//													Vector3 calibPos = Vector3.add(pos, new Vector3(labelWidth / 2 / 1000, 0, labelHeight / 2 / 1000));
+//													distanceNode.setWorldPosition(calibPos);
+//												}
+//											});
+
 											//	renderable.setShadowCaster(false);
 											//	renderable.setShadowReceiver(false);
 											distanceNode.setRenderable(renderable);
@@ -282,7 +304,6 @@ public class GltfActivity extends AppCompatActivity {
 											throw new AssertionError("Could not load card view.", throwable);
 										}
 						);
-		Vector3.
 
 //			// 라벨위치 기준 테스트용 표시
 //			Vector3 xAxisPoint = Vector3.add(distanceNode.getWorldPosition(), Vector3.right());
@@ -306,7 +327,7 @@ public class GltfActivity extends AppCompatActivity {
 //				drawLine(new Color(255, 0, 0), distanceNode.getWorldPosition(), xAxisPoint, curAnchorNode);
 //				drawLine(new Color(0, 255, 0), distanceNode.getWorldPosition(), yAxisPoint, curAnchorNode);
 //				drawLine(new Color(0, 0, 255), distanceNode.getWorldPosition(), zAxisPoint, curAnchorNode);
-				//	drawLine(new Color(10, 10, 10), distanceNode.getWorldPosition(), Vector3.add(distanceNode.getUp(), distanceNode.getWorldPosition()), curAnchorNode);
+		//	drawLine(new Color(10, 10, 10), distanceNode.getWorldPosition(), Vector3.add(distanceNode.getUp(), distanceNode.getWorldPosition()), curAnchorNode);
 //
 //		drawLine(new Color(255, 0, 0), Vector3.zero(), Vector3.right(), curAnchorNode);
 //		drawLine(new Color(0, 255, 0), Vector3.zero(), Vector3.up(), curAnchorNode);
@@ -506,7 +527,8 @@ public class GltfActivity extends AppCompatActivity {
 			updateLabel();
 		}
 	}
-	private void updateLabel(){
+
+	private void updateLabel() {
 
 	}
 }
