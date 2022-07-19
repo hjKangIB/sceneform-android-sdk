@@ -192,12 +192,13 @@ public class GltfActivity extends AppCompatActivity {
 		// drawLine
 
 		final Vector3 difference = Vector3.subtract(point1, point2);
-		final Vector3 directionFromTopToBottom = difference.normalized();
+		final Vector3 directionP1ToP2 = difference.normalized();
 
 		Node lineNode = new Node();
 
 		final Quaternion rotationFromAToB =
-						Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
+						Quaternion.lookRotation(directionP1ToP2, Vector3.up());
+
 		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), color)
 						.thenAccept(
 										material -> {
@@ -251,15 +252,15 @@ public class GltfActivity extends AppCompatActivity {
 		Node distanceNode = new Node();
 		distanceNode.setParent(lastAnchorNodes.get(0));
 		distanceNode.setEnabled(false);
-		distanceNode.setLocalPosition(Vector3.subtract(point2, point1).scaled(.5f));
+		distanceNode.setWorldPosition(new Vector3((point1.x + point2.x)/2, point1.y, (point1.z+point2.z)/2));
 
-//		final Vector3 labelPoint = distanceNode.getWorldPosition();
-//		final Vector3 xAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(1, 0, 0));
+		Vector3 xAxisPoint = Vector3.add(distanceNode.getWorldPosition(), Vector3.right());
+		Vector3 yAxisPoint = Vector3.add(distanceNode.getWorldPosition(), Vector3.up());
+		Vector3 zAxisPoint = Vector3.add(distanceNode.getWorldPosition(), Vector3.forward());
 
-//		final Vector3 yAxisPoint = Vector3.add(distanceNode.getWorldPosition(), new Vector3(0, 1, 0));
-//		final Vector3 diffWithFloor = Vector3.subtract(labelPoint, yAxisPoint);
-//		final Quaternion rotationToFloor =
-//						Quaternion.lookRotation(diffWithFloor, Vector3.forward());
+		final Quaternion rotationToFloor = Quaternion.lookRotation(Vector3.up(), Vector3.forward());
+		final Quaternion rotationToP2 = Quaternion.lookRotation(Vector3.cross(Vector3.up(), Vector3.subtract(point2, point1)), Vector3.up());
+		Quaternion rotationResult = Quaternion.multiply( rotationToP2, rotationToFloor);
 
 		ViewRenderable.builder()
 						.setView(this, R.layout.tiger_card_view)
@@ -272,7 +273,7 @@ public class GltfActivity extends AppCompatActivity {
 //												renderable.setShadowReceiver(false);
 											distanceNode.setRenderable(renderable);
 											distanceNode.setEnabled(true);
-//											distanceNode.setWorldRotation(rotationToFloor);
+											distanceNode.setWorldRotation(rotationResult);
 										})
 						.exceptionally(
 										(throwable) -> {
@@ -281,22 +282,26 @@ public class GltfActivity extends AppCompatActivity {
 						);
 
 		// 라벨위치 기준 테스트용 표시
-//		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
-//						.thenAccept(
-//										material -> {
-//											ModelRenderable model = ShapeFactory.makeCylinder(
-//															.005f,
-//															.0001f,
-//															Vector3.zero(), material);
-//
-//											Node node = new Node();
-//											node.setParent(distanceNode);
-//											node.setRenderable(model);
-//											node.setWorldPosition(distanceNode.getWorldPosition());
-//											nextColor = (nextColor + 1) % colors.size();
-//										}
-//						);
-//		drawLine(new Color(255, 0, 0), labelPoint, xAxisPoint, curAnchorNode);
+		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
+						.thenAccept(
+										material -> {
+											ModelRenderable model = ShapeFactory.makeCylinder(
+															.005f,
+															.0001f,
+															Vector3.zero(), material);
+
+											Node node = new Node();
+											node.setParent(distanceNode);
+											node.setRenderable(model);
+											node.setWorldPosition(distanceNode.getWorldPosition());
+											nextColor = (nextColor + 1) % colors.size();
+										}
+						);
+		drawLine(new Color(255, 0, 0), distanceNode.getWorldPosition(), xAxisPoint, curAnchorNode);
+		drawLine(new Color(0, 255, 0), distanceNode.getWorldPosition(), yAxisPoint, curAnchorNode);
+		drawLine(new Color(0, 0, 255), distanceNode.getWorldPosition(), zAxisPoint, curAnchorNode);
+//		drawLine(new Color(10, 10, 10), distanceNode.getWorldPosition(), Vector3.add(distanceNode.getUp(), distanceNode.getWorldPosition()), curAnchorNode);
+
 		return distanceCm;
 	}
 
@@ -407,15 +412,20 @@ public class GltfActivity extends AppCompatActivity {
 								);
 
 
-				curDrawingLineNode = drawLine(new Color(255, 255, 250), anchorNode.getWorldPosition(), anchorNode.getWorldPosition(), anchorNode);
+				Vector3 point1 = anchorNode.getWorldPosition();
+				Vector3 point2 = anchorNode.getWorldPosition();
+				curDrawingLineNode = drawLine(new Color(255, 255, 250), point1, point2, anchorNode);
+
 
 				if (lastAnchorNodes.size() == 2) {
-					Vector3 point1 = lastAnchorNodes.get(0).getWorldPosition();
-					Vector3 point2 = lastAnchorNodes.get(1).getWorldPosition();
+					point1 = lastAnchorNodes.get(0).getWorldPosition();
+					point2 = lastAnchorNodes.get(1).getWorldPosition();
+					drawDistanceLabel(point1, point2, anchorNode);
 //					drawLineNTile(point1, point2, anchorNode);
 				} else if (lastAnchorNodes.size() == 3) {
-					Vector3 point1 = lastAnchorNodes.get(1).getWorldPosition();
-					Vector3 point2 = lastAnchorNodes.get(2).getWorldPosition();
+					point1 = lastAnchorNodes.get(1).getWorldPosition();
+					point2 = lastAnchorNodes.get(2).getWorldPosition();
+					drawDistanceLabel(point1, point2, anchorNode);
 //					drawLineNTile(point1, point2, anchorNode);
 
 //					lastAnchorNodes = new ArrayList<AnchorNode>();
@@ -461,7 +471,7 @@ public class GltfActivity extends AppCompatActivity {
 
 			Vector3 curReticleHitPosition = reticle.getWorldPosition();
 
-			// hitTest
+			// 화면상에 reticle이 위치하는 부분에서부터 평면상으로 접하는 지점을 찾기위해 hitTest
 			Frame frame = arFragment.getArSceneView().getArFrame();
 			float viewWidth = arFragment.getArSceneView().getWidth();
 			float viewHeight = arFragment.getArSceneView().getHeight();
@@ -483,9 +493,11 @@ public class GltfActivity extends AppCompatActivity {
 			}
 
 			updateLine(new Color(255, 255, 250), lastAnchor.getWorldPosition(), curReticleHitPosition, lastAnchor);
-//			updateLabel();
+			updateLabel();
 		}
 	}
+	private void updateLabel(){
 
+	}
 }
 
