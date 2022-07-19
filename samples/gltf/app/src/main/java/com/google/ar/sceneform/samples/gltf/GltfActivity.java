@@ -75,6 +75,10 @@ public class GltfActivity extends AppCompatActivity {
 	private float tileDepth = 0.1f; // y
 	private Node reticle = null;
 	private Node curDrawingLineNode = null;
+	private Node curDistanceLabelNode = null;
+	private Double curDistance = -999.0;
+	private TextView curLabelView = null;
+	private AnchorNode curAnchor = null;
 
 
 	private final BlockingQueue<MotionEvent> queuedSingleTaps = new ArrayBlockingQueue<>(16);
@@ -245,20 +249,16 @@ public class GltfActivity extends AppCompatActivity {
 
 	}
 
-	private double drawDistanceLabel(Vector3 point1, Vector3 point2) {
+	private Node drawDistanceLabel(Vector3 point1, Vector3 point2, AnchorNode parentNode) {
 		// represent distance Label
-		AnchorNode curAnchorNode = lastAnchorNodes.get(lastAnchorNodes.size() - 1);
 		double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
 		distances.set(distances.size() - 1, distanceCm);
 
 		Node distanceNode = new Node();
-		distanceNode.setParent(lastAnchorNodes.get(lastAnchorNodes.size() - 2));
+//		distanceNode.setParent(lastAnchorNodes.get(lastAnchorNodes.size() - 2));
+		distanceNode.setParent(parentNode);
 		distanceNode.setEnabled(false);
 		distanceNode.setWorldPosition(new Vector3((point1.x + point2.x) / 2, point1.y, (point1.z + point2.z) / 2));
-//				Vector3 a = distanceNode.getWorldPosition();
-//		distanceNode.setLocalPosition(Vector3.back().scaled(.1f));
-//		Vector3 b = distanceNode.getWorldPosition();
-//		drawLine(new Color(255, 255, 0), a, b, lastAnchorNodes.get(lastAnchorNodes.size()-2));
 
 		final Quaternion rotationToFloor = Quaternion.lookRotation(Vector3.up(), Vector3.forward());
 		Vector3 lineVector = point2.x > point1.x ? Vector3.subtract(point2, point1) : Vector3.subtract(point1, point2);
@@ -275,7 +275,7 @@ public class GltfActivity extends AppCompatActivity {
 											label.setText(roundDownDistance);
 
 // 선위에 라벨을 그릴수 있도록 좌표 보정
-//											label.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+//											label.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener( {
 //												@Override
 //												public void onGlobalLayout() {
 //													label.getViewTreeObserver().removeOnGlobalLayoutListener(this);
@@ -324,6 +324,7 @@ public class GltfActivity extends AppCompatActivity {
 //													nextColor = (nextColor + 1) % colors.size();
 //												}
 //								);
+// 				AnchorNode curAnchorNode = lastAnchorNodes.get(lastAnchorNodes.size() - 1);
 //				drawLine(new Color(255, 0, 0), distanceNode.getWorldPosition(), xAxisPoint, curAnchorNode);
 //				drawLine(new Color(0, 255, 0), distanceNode.getWorldPosition(), yAxisPoint, curAnchorNode);
 //				drawLine(new Color(0, 0, 255), distanceNode.getWorldPosition(), zAxisPoint, curAnchorNode);
@@ -333,7 +334,7 @@ public class GltfActivity extends AppCompatActivity {
 //		drawLine(new Color(0, 255, 0), Vector3.zero(), Vector3.up(), curAnchorNode);
 //		drawLine(new Color(0, 0, 255), Vector3.zero(), Vector3.forward(), curAnchorNode);
 
-		return distanceCm;
+		return distanceNode;
 	}
 
 	private void set3DTiles() {
@@ -380,16 +381,16 @@ public class GltfActivity extends AppCompatActivity {
 
 	}
 
-	private void drawLineNTile(Vector3 point1, Vector3 point2, AnchorNode parentNode) {
-		//drawLine
-		if (lastAnchorNodes.size() >= 2) {
-			drawLine(new Color(255, 255, 244), point1, point2, parentNode);
-			double distanceCm = drawDistanceLabel(point1, point2);
-			if (lastAnchorNodes.size() == 3) {
-				set3DTiles();
-			}
-		}
-	}
+//	private void drawLineNTile(Vector3 point1, Vector3 point2, AnchorNode parentNode) {
+//		//drawLine
+//		if (lastAnchorNodes.size() >= 2) {
+//			drawLine(new Color(255, 255, 244), point1, point2, parentNode);
+//			double distanceCm = drawDistanceLabel(point1, point2);
+//			if (lastAnchorNodes.size() == 3) {
+//				set3DTiles();
+//			}
+//		}
+//	}
 
 	private void sendToastMessage(String message) {
 		Toast toast =
@@ -426,6 +427,8 @@ public class GltfActivity extends AppCompatActivity {
 				anchorNode.setParent(arFragment.getArSceneView().getScene());
 				lastAnchorNodes.add(anchorNode);
 				distances.add(.0);
+				curDistance = .0;
+				curAnchor = anchorNode;
 
 				MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
 								.thenAccept(
@@ -446,17 +449,17 @@ public class GltfActivity extends AppCompatActivity {
 				Vector3 point1 = anchorNode.getWorldPosition();
 				Vector3 point2 = anchorNode.getWorldPosition();
 				curDrawingLineNode = drawLine(new Color(255, 255, 250), point1, point2, anchorNode);
-
+//				curDistanceLabelNode = drawDistanceLabel(point1, point2, anchorNode);
 
 				if (lastAnchorNodes.size() == 2) {
 					point1 = lastAnchorNodes.get(0).getWorldPosition();
 					point2 = lastAnchorNodes.get(1).getWorldPosition();
-					drawDistanceLabel(point1, point2);
+					drawDistanceLabel(point1, point2, lastAnchorNodes.get(lastAnchorNodes.size()-2));
 //					drawLineNTile(point1, point2, anchorNode);
 				} else if (lastAnchorNodes.size() == 3) {
 					point1 = lastAnchorNodes.get(1).getWorldPosition();
 					point2 = lastAnchorNodes.get(2).getWorldPosition();
-					drawDistanceLabel(point1, point2);
+					drawDistanceLabel(point1, point2, lastAnchorNodes.get(lastAnchorNodes.size()-2));
 //					drawLineNTile(point1, point2, anchorNode);
 
 //					lastAnchorNodes = new ArrayList<AnchorNode>();
@@ -464,6 +467,11 @@ public class GltfActivity extends AppCompatActivity {
 					lastAnchorNodes.clear();
 					distances.clear();
 					curDrawingLineNode = null;
+					curDistanceLabelNode.getParent().removeChild(curDistanceLabelNode);
+					curDistanceLabelNode = null;
+					curDistance = -999.0;
+					curLabelView = null;
+					curAnchor = null;
 				}
 				break;
 			}
@@ -524,12 +532,56 @@ public class GltfActivity extends AppCompatActivity {
 			}
 
 			updateLine(new Color(255, 255, 250), lastAnchor.getWorldPosition(), curReticleHitPosition, lastAnchor);
-			updateLabel();
+			updateLabel(lastAnchor.getWorldPosition(), curReticleHitPosition, curAnchor);
 		}
 	}
 
-	private void updateLabel() {
+	private void updateLabel(Vector3 point1, Vector3 point2, AnchorNode parentNode) {
 
+		if (curDrawingLineNode != null && reticle != null && lastAnchorNodes.size() > 0) {
+			double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
+			curDistance = distanceCm;
+
+			if(curDistanceLabelNode == null && curLabelView == null){
+				curDistanceLabelNode = new Node();
+				curDistanceLabelNode.setParent(parentNode);
+				ViewRenderable.builder()
+								.setView(this, R.layout.tiger_card_view)
+								.build()
+								.thenAccept(
+												(renderable) -> {
+													String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
+													TextView label = ((TextView) renderable.getView());
+													label.setText(roundDownDistance);
+													//	renderable.setShadowCaster(false);
+													//	renderable.setShadowReceiver(false);
+													curDistanceLabelNode.setRenderable(renderable);
+													curLabelView = label;
+												})
+								.exceptionally(
+												(throwable) -> {
+													throw new AssertionError("Could not load card view.", throwable);
+												}
+								);
+				return;
+			}
+			
+			if(curLabelView == null) return;
+
+			curDistanceLabelNode.setWorldPosition(new Vector3((point1.x + point2.x) / 2, point1.y, (point1.z + point2.z) / 2));
+
+			final Quaternion rotationToFloor = Quaternion.lookRotation(Vector3.up(), Vector3.forward());
+			Vector3 lineVector = point2.x > point1.x ? Vector3.subtract(point2, point1) : Vector3.subtract(point1, point2);
+			final Quaternion rotationToP2 = Quaternion.lookRotation(Vector3.cross(Vector3.up(), lineVector), Vector3.up());
+			Quaternion rotationResult = Quaternion.multiply(rotationToP2, rotationToFloor);
+
+			String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
+			curLabelView.setText(roundDownDistance + "cm");
+
+			//	renderable.setShadowCaster(false);
+			//	renderable.setShadowReceiver(false);
+			curDistanceLabelNode.setWorldRotation(rotationResult);
+		}
 	}
 }
 
