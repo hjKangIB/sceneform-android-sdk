@@ -353,6 +353,7 @@ public class GltfActivity extends AppCompatActivity {
 
 			Vector3 point1 = lastAnchorNodes.get(0).getWorldPosition();
 			Vector3 point2 = lastAnchorNodes.get(1).getWorldPosition();
+			Vector3 point3 = lastAnchorNodes.get(2).getWorldPosition();
 
 			Node pivotNode = new Node();
 			pivotNode.setParent(anchorNode);
@@ -369,28 +370,27 @@ public class GltfActivity extends AppCompatActivity {
 					nodeBuf.add(model);
 				}
 			}
+			final Vector3 line1 = Vector3.subtract(point1, point2);
+			final Vector3 directionLine1 = line1.normalized();
+			final Quaternion rotationFromP1ToP2 =
+							Quaternion.lookRotation(directionLine1, Vector3.up());
 
-
-			final Vector3 difference = Vector3.subtract(point1, point2);
-			final Vector3 directionFromTopToBottom = difference.normalized();
-			final Quaternion rotationFromAToB =
-							Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
 			Quaternion rotation = Quaternion.axisAngle(new Vector3(0f, 1.0f, 0f), -90);
-			pivotNode.setWorldRotation(Quaternion.multiply(rotationFromAToB, rotation));
+			Quaternion normalResult = Quaternion.multiply(rotationFromP1ToP2, rotation);
+
+			final Vector3 line2 = Vector3.subtract(point3, point2);
+			Vector3 crossResult = Vector3.cross(line1, line2);
+			if(crossResult.y >= 0){
+				// 처음 선분 기준으로 우측꺾임
+				pivotNode.setWorldRotation(normalResult);
+			} else {
+				// 처음 선분 기준으로 좌측꺾임 ;
+				Quaternion reverse = Quaternion.axisAngle(Vector3.right(), 180);
+				pivotNode.setWorldRotation(Quaternion.multiply(normalResult, reverse));
+			}
 		}
 
 	}
-
-//	private void drawLineNTile(Vector3 point1, Vector3 point2, AnchorNode parentNode) {
-//		//drawLine
-//		if (lastAnchorNodes.size() >= 2) {
-//			drawLine(new Color(255, 255, 244), point1, point2, parentNode);
-//			double distanceCm = drawDistanceLabel(point1, point2);
-//			if (lastAnchorNodes.size() == 3) {
-//				set3DTiles();
-//			}
-//		}
-//	}
 
 	private void sendToastMessage(String message) {
 		Toast toast =
@@ -405,9 +405,6 @@ public class GltfActivity extends AppCompatActivity {
 		Frame frame = arFragment.getArSceneView().getArFrame();
 		float viewWidth = arFragment.getArSceneView().getWidth();
 		float viewHeight = arFragment.getArSceneView().getHeight();
-
-		// Camera camera = arFragment.getArSceneView().getScene().getCamera();
-		// Ray ray = new Ray(camera.getWorldPosition(), camera.getForward());
 
 		List<HitResult> hitResultList = frame.hitTest(viewWidth * .5f, viewHeight * .5f);
 
@@ -449,29 +446,18 @@ public class GltfActivity extends AppCompatActivity {
 				Vector3 point1 = anchorNode.getWorldPosition();
 				Vector3 point2 = anchorNode.getWorldPosition();
 				curDrawingLineNode = drawLine(new Color(255, 255, 250), point1, point2, anchorNode);
-//				curDistanceLabelNode = drawDistanceLabel(point1, point2, anchorNode);
 
 				if (lastAnchorNodes.size() == 2) {
 					point1 = lastAnchorNodes.get(0).getWorldPosition();
 					point2 = lastAnchorNodes.get(1).getWorldPosition();
 					drawDistanceLabel(point1, point2, lastAnchorNodes.get(lastAnchorNodes.size()-2));
-//					drawLineNTile(point1, point2, anchorNode);
 				} else if (lastAnchorNodes.size() == 3) {
 					point1 = lastAnchorNodes.get(1).getWorldPosition();
 					point2 = lastAnchorNodes.get(2).getWorldPosition();
 					drawDistanceLabel(point1, point2, lastAnchorNodes.get(lastAnchorNodes.size()-2));
-//					drawLineNTile(point1, point2, anchorNode);
+					set3DTiles();
 
-//					lastAnchorNodes = new ArrayList<AnchorNode>();
-//					distances = new ArrayList<Double>();
-					lastAnchorNodes.clear();
-					distances.clear();
-					curDrawingLineNode = null;
-					curDistanceLabelNode.getParent().removeChild(curDistanceLabelNode);
-					curDistanceLabelNode = null;
-					curDistance = -999.0;
-					curLabelView = null;
-					curAnchor = null;
+					resetVariables();
 				}
 				break;
 			}
@@ -582,6 +568,17 @@ public class GltfActivity extends AppCompatActivity {
 			//	renderable.setShadowReceiver(false);
 			curDistanceLabelNode.setWorldRotation(rotationResult);
 		}
+	}
+
+	private void resetVariables(){
+		lastAnchorNodes.clear();
+		distances.clear();
+		curDrawingLineNode = null;
+		curDistanceLabelNode.getParent().removeChild(curDistanceLabelNode);
+		curDistanceLabelNode = null;
+		curDistance = -999.0;
+		curLabelView = null;
+		curAnchor = null;
 	}
 }
 
