@@ -244,22 +244,24 @@ public class GltfActivity extends AppCompatActivity {
 
 	}
 
-	private double drawDistanceLabel(Vector3 point1, Vector3 point2, AnchorNode curAnchorNode) {
+	private double drawDistanceLabel(Vector3 point1, Vector3 point2) {
 		// represent distance Label
+		AnchorNode curAnchorNode = lastAnchorNodes.get(lastAnchorNodes.size()-1);
 		double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
 		distances.set(distances.size() - 1, distanceCm);
 
 		Node distanceNode = new Node();
-		distanceNode.setParent(lastAnchorNodes.get(0));
+		distanceNode.setParent(lastAnchorNodes.get(lastAnchorNodes.size()-2));
 		distanceNode.setEnabled(false);
 		distanceNode.setWorldPosition(new Vector3((point1.x + point2.x)/2, point1.y, (point1.z+point2.z)/2));
-
-		Vector3 xAxisPoint = Vector3.add(distanceNode.getWorldPosition(), Vector3.right());
-		Vector3 yAxisPoint = Vector3.add(distanceNode.getWorldPosition(), Vector3.up());
-		Vector3 zAxisPoint = Vector3.add(distanceNode.getWorldPosition(), Vector3.forward());
+//				Vector3 a = distanceNode.getWorldPosition();
+//		distanceNode.setLocalPosition(Vector3.back().scaled(.1f));
+//		Vector3 b = distanceNode.getWorldPosition();
+//		drawLine(new Color(255, 255, 0), a, b, lastAnchorNodes.get(lastAnchorNodes.size()-2));
 
 		final Quaternion rotationToFloor = Quaternion.lookRotation(Vector3.up(), Vector3.forward());
-		final Quaternion rotationToP2 = Quaternion.lookRotation(Vector3.cross(Vector3.up(), Vector3.subtract(point2, point1)), Vector3.up());
+		Vector3 lineVector = point2.x > point1.x ? Vector3.subtract(point2, point1) :  Vector3.subtract(point1, point2);
+		final Quaternion rotationToP2 = Quaternion.lookRotation(Vector3.cross(Vector3.up(), lineVector), Vector3.up());
 		Quaternion rotationResult = Quaternion.multiply( rotationToP2, rotationToFloor);
 
 		ViewRenderable.builder()
@@ -269,8 +271,8 @@ public class GltfActivity extends AppCompatActivity {
 										(renderable) -> {
 											String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
 											((TextView) renderable.getView()).setText(roundDownDistance);
-//												renderable.setShadowCaster(false);
-//												renderable.setShadowReceiver(false);
+											//	renderable.setShadowCaster(false);
+											//	renderable.setShadowReceiver(false);
 											distanceNode.setRenderable(renderable);
 											distanceNode.setEnabled(true);
 											distanceNode.setWorldRotation(rotationResult);
@@ -280,27 +282,35 @@ public class GltfActivity extends AppCompatActivity {
 											throw new AssertionError("Could not load card view.", throwable);
 										}
 						);
+		Vector3.
 
-		// 라벨위치 기준 테스트용 표시
-		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
-						.thenAccept(
-										material -> {
-											ModelRenderable model = ShapeFactory.makeCylinder(
-															.005f,
-															.0001f,
-															Vector3.zero(), material);
-
-											Node node = new Node();
-											node.setParent(distanceNode);
-											node.setRenderable(model);
-											node.setWorldPosition(distanceNode.getWorldPosition());
-											nextColor = (nextColor + 1) % colors.size();
-										}
-						);
-		drawLine(new Color(255, 0, 0), distanceNode.getWorldPosition(), xAxisPoint, curAnchorNode);
-		drawLine(new Color(0, 255, 0), distanceNode.getWorldPosition(), yAxisPoint, curAnchorNode);
-		drawLine(new Color(0, 0, 255), distanceNode.getWorldPosition(), zAxisPoint, curAnchorNode);
-//		drawLine(new Color(10, 10, 10), distanceNode.getWorldPosition(), Vector3.add(distanceNode.getUp(), distanceNode.getWorldPosition()), curAnchorNode);
+//			// 라벨위치 기준 테스트용 표시
+//			Vector3 xAxisPoint = Vector3.add(distanceNode.getWorldPosition(), Vector3.right());
+//			Vector3 yAxisPoint = Vector3.add(distanceNode.getWorldPosition(), Vector3.up());
+//			Vector3 zAxisPoint = Vector3.add(distanceNode.getWorldPosition(), Vector3.forward());
+//				MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
+//								.thenAccept(
+//												material -> {
+//													ModelRenderable model = ShapeFactory.makeCylinder(
+//																	.005f,
+//																	.0001f,
+//																	Vector3.zero(), material);
+//
+//													Node node = new Node();
+//													node.setParent(distanceNode);
+//													node.setRenderable(model);
+//													node.setWorldPosition(distanceNode.getWorldPosition());
+//													nextColor = (nextColor + 1) % colors.size();
+//												}
+//								);
+//				drawLine(new Color(255, 0, 0), distanceNode.getWorldPosition(), xAxisPoint, curAnchorNode);
+//				drawLine(new Color(0, 255, 0), distanceNode.getWorldPosition(), yAxisPoint, curAnchorNode);
+//				drawLine(new Color(0, 0, 255), distanceNode.getWorldPosition(), zAxisPoint, curAnchorNode);
+				//	drawLine(new Color(10, 10, 10), distanceNode.getWorldPosition(), Vector3.add(distanceNode.getUp(), distanceNode.getWorldPosition()), curAnchorNode);
+//
+//		drawLine(new Color(255, 0, 0), Vector3.zero(), Vector3.right(), curAnchorNode);
+//		drawLine(new Color(0, 255, 0), Vector3.zero(), Vector3.up(), curAnchorNode);
+//		drawLine(new Color(0, 0, 255), Vector3.zero(), Vector3.forward(), curAnchorNode);
 
 		return distanceCm;
 	}
@@ -349,11 +359,11 @@ public class GltfActivity extends AppCompatActivity {
 
 	}
 
-	private void drawLineNTile(Vector3 point1, Vector3 point2, AnchorNode curAnchorNode) {
+	private void drawLineNTile(Vector3 point1, Vector3 point2, AnchorNode parentNode) {
 		//drawLine
 		if (lastAnchorNodes.size() >= 2) {
-			drawLine(new Color(255, 255, 244), point1, point2, curAnchorNode);
-			double distanceCm = drawDistanceLabel(point1, point2, curAnchorNode);
+			drawLine(new Color(255, 255, 244), point1, point2, parentNode);
+			double distanceCm = drawDistanceLabel(point1, point2);
 			if (lastAnchorNodes.size() == 3) {
 				set3DTiles();
 			}
@@ -420,12 +430,12 @@ public class GltfActivity extends AppCompatActivity {
 				if (lastAnchorNodes.size() == 2) {
 					point1 = lastAnchorNodes.get(0).getWorldPosition();
 					point2 = lastAnchorNodes.get(1).getWorldPosition();
-					drawDistanceLabel(point1, point2, anchorNode);
+					drawDistanceLabel(point1, point2);
 //					drawLineNTile(point1, point2, anchorNode);
 				} else if (lastAnchorNodes.size() == 3) {
 					point1 = lastAnchorNodes.get(1).getWorldPosition();
 					point2 = lastAnchorNodes.get(2).getWorldPosition();
-					drawDistanceLabel(point1, point2, anchorNode);
+					drawDistanceLabel(point1, point2);
 //					drawLineNTile(point1, point2, anchorNode);
 
 //					lastAnchorNodes = new ArrayList<AnchorNode>();
