@@ -79,6 +79,7 @@ public class GltfActivity extends AppCompatActivity {
 	private Double curDistance = -999.0;
 	private TextView curLabelView = null;
 	private AnchorNode curAnchor = null;
+	private Node curGuideSquareNode = null;
 
 
 	private final BlockingQueue<MotionEvent> queuedSingleTaps = new ArrayBlockingQueue<>(16);
@@ -201,7 +202,7 @@ public class GltfActivity extends AppCompatActivity {
 
 		Node lineNode = new Node();
 
-		final Quaternion rotationFromAToB =
+		final Quaternion rotationP1ToP2 =
 						Quaternion.lookRotation(directionP1ToP2, Vector3.up());
 
 		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), color)
@@ -213,7 +214,7 @@ public class GltfActivity extends AppCompatActivity {
 											lineNode.setParent(anchorNode);
 											lineNode.setRenderable(model);
 											lineNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
-											lineNode.setWorldRotation(rotationFromAToB);
+											lineNode.setWorldRotation(rotationP1ToP2);
 
 										}
 						);
@@ -380,7 +381,7 @@ public class GltfActivity extends AppCompatActivity {
 
 			final Vector3 line2 = Vector3.subtract(point3, point2);
 			Vector3 crossResult = Vector3.cross(line1, line2);
-			if(crossResult.y >= 0){
+			if (crossResult.y >= 0) {
 				// 처음 선분 기준으로 우측꺾임
 				pivotNode.setWorldRotation(normalResult);
 			} else {
@@ -450,11 +451,12 @@ public class GltfActivity extends AppCompatActivity {
 				if (lastAnchorNodes.size() == 2) {
 					point1 = lastAnchorNodes.get(0).getWorldPosition();
 					point2 = lastAnchorNodes.get(1).getWorldPosition();
-					drawDistanceLabel(point1, point2, lastAnchorNodes.get(lastAnchorNodes.size()-2));
+					drawDistanceLabel(point1, point2, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
+					curGuideSquareNode = drawGuideSquare(point1, point2, point2, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
 				} else if (lastAnchorNodes.size() == 3) {
 					point1 = lastAnchorNodes.get(1).getWorldPosition();
 					point2 = lastAnchorNodes.get(2).getWorldPosition();
-					drawDistanceLabel(point1, point2, lastAnchorNodes.get(lastAnchorNodes.size()-2));
+					drawDistanceLabel(point1, point2, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
 					set3DTiles();
 
 					resetVariables();
@@ -519,6 +521,23 @@ public class GltfActivity extends AppCompatActivity {
 
 			updateLine(new Color(255, 255, 250), lastAnchor.getWorldPosition(), curReticleHitPosition, lastAnchor);
 			updateLabel(lastAnchor.getWorldPosition(), curReticleHitPosition, curAnchor);
+			if(curGuideSquareNode != null){
+//				curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
+				updateGuideSquare(
+								lastAnchorNodes.get(0).getWorldPosition(),
+								lastAnchorNodes.get(1).getWorldPosition(),
+								curReticleHitPosition,
+								lastAnchorNodes.get(0));
+			}
+
+
+		}
+	}
+
+	private void updateGuideSquare(Vector3 point1, Vector3 point2, Vector3 point3, AnchorNode parentNode) {
+		if(curGuideSquareNode != null){
+			curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
+			curGuideSquareNode = drawGuideSquare(point1, point2, point3, parentNode);
 		}
 	}
 
@@ -528,7 +547,7 @@ public class GltfActivity extends AppCompatActivity {
 			double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
 			curDistance = distanceCm;
 
-			if(curDistanceLabelNode == null && curLabelView == null){
+			if (curDistanceLabelNode == null && curLabelView == null) {
 				curDistanceLabelNode = new Node();
 				curDistanceLabelNode.setParent(parentNode);
 				ViewRenderable.builder()
@@ -551,8 +570,8 @@ public class GltfActivity extends AppCompatActivity {
 								);
 				return;
 			}
-			
-			if(curLabelView == null) return;
+
+			if (curLabelView == null) return;
 
 			curDistanceLabelNode.setWorldPosition(new Vector3((point1.x + point2.x) / 2, point1.y, (point1.z + point2.z) / 2));
 
@@ -570,7 +589,7 @@ public class GltfActivity extends AppCompatActivity {
 		}
 	}
 
-	private void resetVariables(){
+	private void resetVariables() {
 		lastAnchorNodes.clear();
 		distances.clear();
 		curDrawingLineNode = null;
@@ -579,6 +598,48 @@ public class GltfActivity extends AppCompatActivity {
 		curDistance = -999.0;
 		curLabelView = null;
 		curAnchor = null;
+		curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
+		curGuideSquareNode = null;
+	}
+
+	private Node drawGuideSquare(Vector3 point1, Vector3 point2, Vector3 point3, AnchorNode parentNode) {
+
+		final Vector3 line1 = Vector3.subtract(point1, point2);
+		final Vector3 line2 = Vector3.subtract(point2, point3);
+		final Vector3 directionP1ToP2 = line1.normalized();
+		final Quaternion rotationP1ToP2 =
+						Quaternion.lookRotation(directionP1ToP2, Vector3.up());
+		final float width = line1.length();
+		final float height = line2.length() + 0.0001f;
+
+
+		Vector3 crossResult = Vector3.cross(line1, line2);
+		Quaternion calibratedRotation;
+		if (crossResult.y >= 0) {
+			// 처음 선분 기준으로 우측꺾임
+			Quaternion reverse = Quaternion.axisAngle(Vector3.forward(), 180);
+			calibratedRotation = Quaternion.multiply(rotationP1ToP2, reverse);
+		} else {
+			// 처음 선분 기준으로 좌측꺾임 ;
+			calibratedRotation = rotationP1ToP2;
+		}
+
+		Node squareNode = new Node();
+
+		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(1, 1, 1, 0.2f))
+						.thenAccept(
+										material -> {
+											ModelRenderable model = ShapeFactory.makeCube(
+															new Vector3(height, 0.0001f, width),
+															new Vector3(-0.5f * height, 0, 0), material);
+											squareNode.setParent(parentNode);
+											squareNode.setRenderable(model);
+											squareNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
+											squareNode.setWorldRotation(calibratedRotation);
+
+										}
+						);
+		return squareNode;
 	}
 }
 
