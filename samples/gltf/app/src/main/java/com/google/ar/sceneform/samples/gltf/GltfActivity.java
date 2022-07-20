@@ -227,9 +227,7 @@ public class GltfActivity extends AppCompatActivity {
 		if (curDrawingLineNode != null && reticle != null) {
 			final Vector3 difference = Vector3.subtract(point1, point2);
 			final Vector3 directionFromTopToBottom = difference.normalized();
-
 //			Node lineNode = new Node();
-
 			final Quaternion rotationFromAToB =
 							Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
 			MaterialFactory.makeOpaqueWithColor(getApplicationContext(), color)
@@ -238,14 +236,11 @@ public class GltfActivity extends AppCompatActivity {
 												ModelRenderable model = ShapeFactory.makeCube(
 																new Vector3(.005f, .0001f, difference.length()),
 																Vector3.zero(), material);
-
 												curDrawingLineNode.setRenderable(model);
 												curDrawingLineNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
 												curDrawingLineNode.setWorldRotation(rotationFromAToB);
-
 											}
 							);
-
 		}
 
 	}
@@ -395,7 +390,7 @@ public class GltfActivity extends AppCompatActivity {
 
 	private void sendToastMessage(String message) {
 		Toast toast =
-						Toast.makeText(this, message, Toast.LENGTH_LONG);
+						Toast.makeText(this, message, Toast.LENGTH_SHORT);
 		toast.setGravity(Gravity.BOTTOM, 0, 0);
 		toast.show();
 	}
@@ -470,12 +465,13 @@ public class GltfActivity extends AppCompatActivity {
 		Vector3 camWorldPos = arFragment.getArSceneView().getScene().getCamera().getWorldPosition();
 		Vector3 camLookForward = arFragment.getArSceneView().getScene().getCamera().getForward();
 
-		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(255, 255, 0))
+		MaterialFactory.makeTransparentWithColor(getApplicationContext(), new Color(255, 255, 0, 1.0f))
 						.thenAccept(
 										material -> {
-
-											if (reticle == null)
+											if (reticle == null){
 												reticle = new Node();
+												reticle.setParent(arFragment.getArSceneView().getScene());
+											}
 
 											ModelRenderable model = ShapeFactory.makeCylinder(
 															.01f,
@@ -483,7 +479,7 @@ public class GltfActivity extends AppCompatActivity {
 															Vector3.zero(), material);
 //											model.setShadowCaster(false);
 //											model.setShadowReceiver(false);
-											reticle.setParent(arFragment.getArSceneView().getScene());
+
 											reticle.setRenderable(model);
 											reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
 										}
@@ -522,7 +518,6 @@ public class GltfActivity extends AppCompatActivity {
 			updateLine(new Color(255, 255, 250), lastAnchor.getWorldPosition(), curReticleHitPosition, lastAnchor);
 			updateLabel(lastAnchor.getWorldPosition(), curReticleHitPosition, curAnchor);
 			if(curGuideSquareNode != null){
-//				curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
 				updateGuideSquare(
 								lastAnchorNodes.get(0).getWorldPosition(),
 								lastAnchorNodes.get(1).getWorldPosition(),
@@ -535,7 +530,11 @@ public class GltfActivity extends AppCompatActivity {
 	}
 
 	private void updateGuideSquare(Vector3 point1, Vector3 point2, Vector3 point3, AnchorNode parentNode) {
-		if(curGuideSquareNode != null){
+		if(
+			curGuideSquareNode != null &&
+			curGuideSquareNode.isActive() &&
+			curGuideSquareNode.getParent() != null
+		){
 			curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
 			curGuideSquareNode = drawGuideSquare(point1, point2, point3, parentNode);
 		}
@@ -593,12 +592,18 @@ public class GltfActivity extends AppCompatActivity {
 		lastAnchorNodes.clear();
 		distances.clear();
 		curDrawingLineNode = null;
-		curDistanceLabelNode.getParent().removeChild(curDistanceLabelNode);
+		if(curDistanceLabelNode.isActive() && curDistanceLabelNode.getParent() != null){
+			// warn: memory leak
+			curDistanceLabelNode.getParent().removeChild(curDistanceLabelNode);
+		}
 		curDistanceLabelNode = null;
 		curDistance = -999.0;
 		curLabelView = null;
 		curAnchor = null;
-		curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
+		if(curGuideSquareNode.isActive() && curGuideSquareNode.getParent() != null){
+			// warn: memory leak
+			curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
+		}
 		curGuideSquareNode = null;
 	}
 
@@ -626,7 +631,7 @@ public class GltfActivity extends AppCompatActivity {
 
 		Node squareNode = new Node();
 
-		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(1, 1, 1, 0.2f))
+		MaterialFactory.makeTransparentWithColor(getApplicationContext(), new Color(1, 1, 0, 0.3f))
 						.thenAccept(
 										material -> {
 											ModelRenderable model = ShapeFactory.makeCube(
