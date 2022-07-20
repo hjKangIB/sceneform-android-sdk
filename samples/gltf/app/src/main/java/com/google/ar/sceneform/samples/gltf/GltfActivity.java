@@ -43,6 +43,7 @@ import com.google.ar.sceneform.collision.Ray;
 import com.google.ar.sceneform.math.Quaternion;
 import com.google.ar.sceneform.math.Vector3;
 import com.google.ar.sceneform.rendering.Color;
+import com.google.ar.sceneform.rendering.Material;
 import com.google.ar.sceneform.rendering.MaterialFactory;
 import com.google.ar.sceneform.rendering.ModelRenderable;
 import com.google.ar.sceneform.rendering.Renderable;
@@ -224,23 +225,21 @@ public class GltfActivity extends AppCompatActivity {
 
 	private void updateLine(Color color, Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
 
-		if (curDrawingLineNode != null && reticle != null) {
+		if (curDrawingLineNode != null && curDrawingLineNode.isActive() && reticle != null ) {
 			final Vector3 difference = Vector3.subtract(point1, point2);
 			final Vector3 directionFromTopToBottom = difference.normalized();
-//			Node lineNode = new Node();
 			final Quaternion rotationFromAToB =
 							Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
-			MaterialFactory.makeOpaqueWithColor(getApplicationContext(), color)
-							.thenAccept(
-											material -> {
-												ModelRenderable model = ShapeFactory.makeCube(
-																new Vector3(.005f, .0001f, difference.length()),
-																Vector3.zero(), material);
-												curDrawingLineNode.setRenderable(model);
-												curDrawingLineNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
-												curDrawingLineNode.setWorldRotation(rotationFromAToB);
-											}
-							);
+
+			Material material = curDrawingLineNode.getRenderable().getMaterial();
+			ModelRenderable model = ShapeFactory.makeCube(
+							new Vector3(.005f, .0001f, difference.length()),
+							Vector3.zero(), material);
+
+			curDrawingLineNode.setRenderable(model);
+			curDrawingLineNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
+			curDrawingLineNode.setWorldRotation(rotationFromAToB);
+
 		}
 
 	}
@@ -465,25 +464,30 @@ public class GltfActivity extends AppCompatActivity {
 		Vector3 camWorldPos = arFragment.getArSceneView().getScene().getCamera().getWorldPosition();
 		Vector3 camLookForward = arFragment.getArSceneView().getScene().getCamera().getForward();
 
-		MaterialFactory.makeTransparentWithColor(getApplicationContext(), new Color(255, 255, 0, 1.0f))
-						.thenAccept(
-										material -> {
-											if (reticle == null){
+		if(reticle == null){
+			MaterialFactory.makeTransparentWithColor(getApplicationContext(), new Color(255, 255, 0, 1.0f))
+							.thenAccept(
+											material -> {
+
 												reticle = new Node();
 												reticle.setParent(arFragment.getArSceneView().getScene());
-											}
 
-											ModelRenderable model = ShapeFactory.makeCylinder(
-															.01f,
-															.0001f,
-															Vector3.zero(), material);
+
+												ModelRenderable model = ShapeFactory.makeCylinder(
+																.01f,
+																.0001f,
+																Vector3.zero(), material);
 //											model.setShadowCaster(false);
 //											model.setShadowReceiver(false);
 
-											reticle.setRenderable(model);
-											reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
-										}
-						);
+												reticle.setRenderable(model);
+												reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
+											}
+							);
+		} else if(reticle.isActive() && reticle.getRenderable() != null ){
+			reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
+		}
+
 	}
 
 	private void updateScreen() {
