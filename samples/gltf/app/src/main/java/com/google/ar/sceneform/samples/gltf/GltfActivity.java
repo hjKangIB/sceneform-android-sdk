@@ -83,6 +83,9 @@ public class GltfActivity extends AppCompatActivity {
 	private Node curGuideSquareNode = null;
 	private Boolean isHit = false;
 	private float planeYPosition = .0f;
+	private float depthOffset = 0.000001f;
+	private float objectsDepth = depthOffset /10;
+	private int phase = 0;
 
 
 	private final BlockingQueue<MotionEvent> queuedSingleTaps = new ArrayBlockingQueue<>(16);
@@ -214,11 +217,12 @@ public class GltfActivity extends AppCompatActivity {
 						.thenAccept(
 										material -> {
 											ModelRenderable model = ShapeFactory.makeCube(
-															new Vector3(.005f, .0001f, difference.length()),
+															new Vector3(.005f, objectsDepth, difference.length()),
 															Vector3.zero(), material);
+											model.setRenderPriority(2);
 											lineNode.setParent(anchorNode);
 											lineNode.setRenderable(model);
-											lineNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
+											lineNode.setWorldPosition(avoidOverlap(Vector3.add(point1, point2).scaled(.5f)));
 											lineNode.setWorldRotation(rotationP1ToP2);
 
 										}
@@ -238,7 +242,7 @@ public class GltfActivity extends AppCompatActivity {
 
 			Material material = curDrawingLineNode.getRenderable().getMaterial();
 			ModelRenderable model = ShapeFactory.makeCube(
-							new Vector3(.005f, .0001f, difference.length()),
+							new Vector3(.005f, objectsDepth, difference.length()),
 							Vector3.zero(), material);
 
 			curDrawingLineNode.setRenderable(model);
@@ -259,7 +263,7 @@ public class GltfActivity extends AppCompatActivity {
 //		distanceNode.setParent(lastAnchorNodes.get(lastAnchorNodes.size() - 2));
 		distanceNode.setParent(parentNode);
 		distanceNode.setEnabled(false);
-		distanceNode.setWorldPosition(new Vector3((point1.x + point2.x) / 2, point1.y, (point1.z + point2.z) / 2));
+		distanceNode.setWorldPosition(avoidOverlap(new Vector3((point1.x + point2.x) / 2, point1.y, (point1.z + point2.z) / 2)));
 
 		final Quaternion rotationToFloor = Quaternion.lookRotation(Vector3.up(), Vector3.forward());
 		Vector3 lineVector = point2.x > point1.x ? Vector3.subtract(point2, point1) : Vector3.subtract(point1, point2);
@@ -360,7 +364,7 @@ public class GltfActivity extends AppCompatActivity {
 			Node pivotNode = new Node();
 			pivotNode.setParent(anchorNode);
 			pivotNode.setRenderable(renderable);
-			pivotNode.setWorldPosition(anchorNode.getWorldPosition());
+			pivotNode.setWorldPosition(avoidOverlap(anchorNode.getWorldPosition()));
 
 			for (int i = 0; i < rowCnt; i++) {
 				for (int j = 0; j < colCnt; j++) {
@@ -424,6 +428,7 @@ public class GltfActivity extends AppCompatActivity {
 				// mark anchor point
 				AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
 				anchorNode.setParent(arFragment.getArSceneView().getScene());
+				anchorNode.setWorldPosition(avoidOverlap(anchorNode.getWorldPosition()));
 				lastAnchorNodes.add(anchorNode);
 				distances.add(.0);
 				curDistance = .0;
@@ -434,9 +439,9 @@ public class GltfActivity extends AppCompatActivity {
 												material -> {
 													ModelRenderable model = ShapeFactory.makeCylinder(
 																	.01f,
-																	.0001f,
+																	objectsDepth,
 																	Vector3.zero(), material);
-
+		model.setRenderPriority(1);
 													Node node = new Node();
 													node.setParent(anchorNode);
 													node.setRenderable(model);
@@ -475,7 +480,7 @@ public class GltfActivity extends AppCompatActivity {
 		Vector3 camLookForward = arFragment.getArSceneView().getScene().getCamera().getForward();
 
 		if(reticle == null){
-			MaterialFactory.makeTransparentWithColor(getApplicationContext(), new Color(255, 255, 0, 1.0f))
+			MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(255, 255, 0))
 							.thenAccept(
 											material -> {
 
@@ -485,7 +490,7 @@ public class GltfActivity extends AppCompatActivity {
 
 												ModelRenderable model = ShapeFactory.makeCylinder(
 																.01f,
-																.0001f,
+																objectsDepth,
 																Vector3.zero(), material);
 //											model.setShadowCaster(false);
 //											model.setShadowReceiver(false);
@@ -540,7 +545,9 @@ public class GltfActivity extends AppCompatActivity {
 					isHit = true;
 					AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
 					anchorNode.setParent(arFragment.getArSceneView().getScene());
+
 					curReticleHitPosition = anchorNode.getWorldPosition();
+					planeYPosition = curReticleHitPosition.y;
 				}
 			}
 
@@ -647,7 +654,7 @@ public class GltfActivity extends AppCompatActivity {
 		final Quaternion rotationP1ToP2 =
 						Quaternion.lookRotation(directionP1ToP2, Vector3.up());
 		final float width = line1.length();
-		final float height = line2.length() + 0.0001f;
+		final float height = line2.length() + 0.0001f; // 맨처음 사각형을 그리면 point2, point3의 좌표가 똑같기 때문에 차이를 약간 두기위해 초기값으로 0.0001f을 더해준다.
 
 
 		Vector3 crossResult = Vector3.cross(line1, line2);
@@ -667,7 +674,7 @@ public class GltfActivity extends AppCompatActivity {
 						.thenAccept(
 										material -> {
 											ModelRenderable model = ShapeFactory.makeCube(
-															new Vector3(height, 0.0001f, width),
+															new Vector3(height, objectsDepth , width),
 															new Vector3(-0.5f * height, 0, 0), material);
 											squareNode.setParent(parentNode);
 											squareNode.setRenderable(model);
@@ -677,6 +684,15 @@ public class GltfActivity extends AppCompatActivity {
 										}
 						);
 		return squareNode;
+	}
+
+	// 도형끼리 겹치면 같은 동일 높이라서 그래픽이 반짝반짝 떨리는 문제가 있는데
+	// 이를 해결하기 위해 오브젝트를 배치할때 무시할수 있을 수준의 높이 차이를 만들어준다.
+	// <테스트 결과 문제 해결이 되지 않음>
+	private Vector3	avoidOverlap(Vector3 targetVector){
+		Vector3 result = Vector3.add(targetVector, new Vector3(0, phase * depthOffset, 0));
+		phase = ++phase % 10 + 1;
+		return result;
 	}
 }
 
