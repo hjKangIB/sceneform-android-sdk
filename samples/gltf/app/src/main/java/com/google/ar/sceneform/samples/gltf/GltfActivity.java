@@ -81,6 +81,8 @@ public class GltfActivity extends AppCompatActivity {
 	private TextView curLabelView = null;
 	private AnchorNode curAnchor = null;
 	private Node curGuideSquareNode = null;
+	private Boolean isHit = false;
+	private float planeYPosition = .0f;
 
 
 	private final BlockingQueue<MotionEvent> queuedSingleTaps = new ArrayBlockingQueue<>(16);
@@ -487,7 +489,6 @@ public class GltfActivity extends AppCompatActivity {
 		} else if(reticle.isActive() && reticle.getRenderable() != null ){
 			reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
 		}
-
 	}
 
 	private void updateScreen() {
@@ -496,7 +497,16 @@ public class GltfActivity extends AppCompatActivity {
 		if (curDrawingLineNode != null && reticle != null && lastAnchorNodes.size() > 0) {
 			AnchorNode lastAnchor = lastAnchorNodes.get(lastAnchorNodes.size() - 1);
 
-			Vector3 curReticleHitPosition = reticle.getWorldPosition();
+			Vector3 curReticleHitPosition;
+			if(isHit){
+				float x = reticle.getWorldPosition().x;
+				float y = planeYPosition;
+				float z = reticle.getWorldPosition().z;
+				curReticleHitPosition = new Vector3(x, y, z);
+			} else {
+				curReticleHitPosition = reticle.getWorldPosition();
+			}
+
 
 			// 화면상에 reticle이 위치하는 부분에서부터 평면상으로 접하는 지점을 찾기위해 hitTest
 			Frame frame = arFragment.getArSceneView().getArFrame();
@@ -514,7 +524,9 @@ public class GltfActivity extends AppCompatActivity {
 								&& ((Point) trackable).getOrientationMode()
 								== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
 				) {
+					isHit = true;
 					AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
+					anchorNode.setParent(arFragment.getArSceneView().getScene());
 					curReticleHitPosition = anchorNode.getWorldPosition();
 				}
 			}
