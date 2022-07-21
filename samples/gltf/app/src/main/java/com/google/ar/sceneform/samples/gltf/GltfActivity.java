@@ -123,7 +123,6 @@ public class GltfActivity extends AppCompatActivity {
 						(HitTestResult hitTestResult, MotionEvent motionEvent) -> {
 							if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
 								handleTap(motionEvent);
-
 								return true;
 							}
 							return false;
@@ -219,7 +218,6 @@ public class GltfActivity extends AppCompatActivity {
 											ModelRenderable model = ShapeFactory.makeCube(
 															new Vector3(.005f, objectsDepth, difference.length()),
 															Vector3.zero(), material);
-											model.setRenderPriority(2);
 											lineNode.setParent(anchorNode);
 											lineNode.setRenderable(model);
 											lineNode.setWorldPosition(avoidOverlap(Vector3.add(point1, point2).scaled(.5f)));
@@ -385,11 +383,11 @@ public class GltfActivity extends AppCompatActivity {
 			Quaternion normalResult = Quaternion.multiply(rotationFromP1ToP2, rotation);
 
 			final Vector3 line2 = Vector3.subtract(point3, point2);
-			Vector3 crossResult = Vector3.cross(line1, line2);
-			if (crossResult.y >= 0) {
+			String crossResult = relationBetweenVector(line1, line2);
+			if (crossResult == "TURN_TO_RIGHT") {
 				// 처음 선분 기준으로 우측꺾임
 				pivotNode.setWorldRotation(normalResult);
-			} else {
+			} else if(crossResult == "TURN_TO_LEFT"){
 				// 처음 선분 기준으로 좌측꺾임 ;
 				Quaternion reverse = Quaternion.axisAngle(Vector3.right(), 180);
 				pivotNode.setWorldRotation(Quaternion.multiply(normalResult, reverse));
@@ -441,7 +439,6 @@ public class GltfActivity extends AppCompatActivity {
 																	.01f,
 																	objectsDepth,
 																	Vector3.zero(), material);
-		model.setRenderPriority(1);
 													Node node = new Node();
 													node.setParent(anchorNode);
 													node.setRenderable(model);
@@ -551,17 +548,18 @@ public class GltfActivity extends AppCompatActivity {
 				}
 			}
 
-			updateLine(new Color(255, 255, 250), lastAnchor.getWorldPosition(), curReticleHitPosition, lastAnchor);
-			updateLabel(lastAnchor.getWorldPosition(), curReticleHitPosition, curAnchor);
-			if(curGuideSquareNode != null){
-				updateGuideSquare(
-								lastAnchorNodes.get(0).getWorldPosition(),
-								lastAnchorNodes.get(1).getWorldPosition(),
-								curReticleHitPosition,
-								lastAnchorNodes.get(0));
+			if(lastAnchorNodes.size() == 1){
+				updateLine(new Color(255, 255, 250), lastAnchor.getWorldPosition(), curReticleHitPosition, lastAnchor);
+				updateLabel(lastAnchor.getWorldPosition(), curReticleHitPosition, curAnchor);
+			} else if(lastAnchorNodes.size() == 2 && curGuideSquareNode != null){
+				Vector3 point1 = lastAnchorNodes.get(0).getWorldPosition();
+				Vector3 point2 = lastAnchorNodes.get(1).getWorldPosition();
+				Vector3 point3 = getGuidedPoint3(point1, point2, curReticleHitPosition);
+
+				updateLine(new Color(255, 255, 250), point2, point3, lastAnchor);
+				updateLabel(point2, point3, curAnchor);
+				updateGuideSquare(point1, point2, point3, lastAnchorNodes.get(0));
 			}
-
-
 		}
 	}
 
@@ -693,6 +691,29 @@ public class GltfActivity extends AppCompatActivity {
 		Vector3 result = Vector3.add(targetVector, new Vector3(0, phase * depthOffset, 0));
 		phase = ++phase % 10 + 1;
 		return result;
+	}
+
+	private Vector3 getGuidedPoint3(Vector3 point1, Vector3 point2, Vector3 point3){
+		final Vector3 line1 = Vector3.subtract(point1, point2);
+		final Vector3 line2 = Vector3.subtract(point2, point3);
+		float theta = Vector3.angleBetweenVectors(line1, line2);
+
+		String crossResult = relationBetweenVector(line1, line2);
+		if(crossResult == "TURN_TO_RIGHT"){
+			Vector3 oppositeVector = Vector3.add(Quaternion.rotateVector(Quaternion.axisAngle(Vector3.up(), 90 - theta), line2), point2) ;
+			return Vector3.add(Quaternion.rotateVector(Quaternion.axisAngle(line1, 180), Vector3.subtract(oppositeVector, point2)), point2) ;
+		}
+		Vector3 oppositeVector = Vector3.add(Quaternion.rotateVector(Quaternion.axisAngle(Vector3.up(), theta - 90), line2), point2) ;
+		return Vector3.add(Quaternion.rotateVector(Quaternion.axisAngle(line1, 180), Vector3.subtract(oppositeVector, point2)), point2) ;
+	}
+
+	private String relationBetweenVector(Vector3 line1, Vector3 line2){
+		Vector3 crossResult = Vector3.cross(line1, line2);
+		if(crossResult.y >=0){
+			// 처음 선분 기준으로 우측꺾임
+			return "TURN_TO_RIGHT";
+		}
+		return "TURN_TO_LEFT";
 	}
 }
 
