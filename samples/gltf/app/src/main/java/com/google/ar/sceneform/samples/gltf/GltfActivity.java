@@ -161,6 +161,7 @@ public class GltfActivity extends AppCompatActivity {
 		return true;
 	}
 
+	// 3d 오브젝트를 넘겨받은 path로부터 로드한다.
 	private void load3DObject(String path) {
 		// load 3d object
 		WeakReference<GltfActivity> weakActivity = new WeakReference<>(this);
@@ -197,6 +198,7 @@ public class GltfActivity extends AppCompatActivity {
 						distanceZ * distanceZ);
 	}
 
+	// 탭을 한번 이상 했을 경우 호출되어 선을 그리는 메소드
 	private Node drawLine(Color color, Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
 		// drawLine
 
@@ -225,6 +227,7 @@ public class GltfActivity extends AppCompatActivity {
 	}
 
 
+	// 탭을 한번이상하면 그려지는 선의 길이와 위치를 업데이트하는 메소드
 	private void updateLine(Color color, Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
 
 		if (curDrawingLineNode != null && curDrawingLineNode.isActive() && reticle != null ) {
@@ -246,6 +249,7 @@ public class GltfActivity extends AppCompatActivity {
 
 	}
 
+	// 두점사이의  거리를 나타내는 라벨을 그린다.
 	private Node drawDistanceLabel(Vector3 point1, Vector3 point2, AnchorNode parentNode) {
 		// represent distance Label
 		double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
@@ -334,6 +338,7 @@ public class GltfActivity extends AppCompatActivity {
 		return distanceNode;
 	}
 
+	// 로드된 3d tile을 표시하는 메소드
 	private void set3DTiles() {
 		//		draw tile
 		if (renderable == null) {
@@ -396,7 +401,7 @@ public class GltfActivity extends AppCompatActivity {
 		toast.show();
 	}
 
-
+	// 사용자가 탭할때 처리 로직을 담은 메소드
 	private void handleTap(MotionEvent motionEvent) {
 		// hitTest
 		Frame frame = arFragment.getArSceneView().getArFrame();
@@ -462,6 +467,9 @@ public class GltfActivity extends AppCompatActivity {
 		}
 	}
 
+	// 단순히 화면 중앙에 존재하는 점 reticle을 그린다.
+	// markReticle()만으로 그려진 reticle의 위치는 카메라가 바라보는 방향과
+	// 인식한 가상의 바닥이 접하는 지점의 위치와 동일을 보장하진 않는다.
 	private void markReticle() {
 		Vector3 camWorldPos = arFragment.getArSceneView().getScene().getCamera().getWorldPosition();
 		Vector3 camLookForward = arFragment.getArSceneView().getScene().getCamera().getForward();
@@ -491,12 +499,19 @@ public class GltfActivity extends AppCompatActivity {
 		}
 	}
 
+	// 매 프레임 화면을 업데이트한다.
+	// 1. reticle의 위치를 인식한 바닥의 지점의 위치로 값을 보정한다.
+	// 2. 탭을 1번이상 했을 경우 보여져야 할 선의 길이와 위치를 프레임마다 조정한다. (updateLine 메소드 호출)
+	// 3. 탭을 2번이상 했을때 나타나야할 가이드 사각형의 크기를 프레임마다 조정한다. (updateGuideSquare 메소드 호출)
 	private void updateScreen() {
 		markReticle();
 
 		if (curDrawingLineNode != null && reticle != null && lastAnchorNodes.size() > 0) {
 			AnchorNode lastAnchor = lastAnchorNodes.get(lastAnchorNodes.size() - 1);
 
+			// reticle은 스마트폰 screen상에서 단순 center에서 카메라가 바라보는 방향의 수직으로 뻗은 벡터의 좌표일 뿐이라서
+			// 실제 감지된 평면상에 접하는 지점과 차이가 발생할 경우가 존재한다.
+			// 이 때문에 종종 2번째 3번째 탭할때 지정되는 point끼리의 높이 차이가 존재하게 되는 문제가 생기는데 이를 보정하기 위해 아래의 로직을 추가한다.
 			Vector3 curReticleHitPosition;
 			if(isHit){
 				float x = reticle.getWorldPosition().x;
@@ -506,8 +521,6 @@ public class GltfActivity extends AppCompatActivity {
 			} else {
 				curReticleHitPosition = reticle.getWorldPosition();
 			}
-
-
 			// 화면상에 reticle이 위치하는 부분에서부터 평면상으로 접하는 지점을 찾기위해 hitTest
 			Frame frame = arFragment.getArSceneView().getArFrame();
 			float viewWidth = arFragment.getArSceneView().getWidth();
@@ -545,6 +558,7 @@ public class GltfActivity extends AppCompatActivity {
 		}
 	}
 
+	// 탭을 2번 누르면 나타나는 직각을 가이드 하기위해 가이드 사각형을 그리는데 이를 프레임마다 크기및 위치를 업데이트한다.
 	private void updateGuideSquare(Vector3 point1, Vector3 point2, Vector3 point3, AnchorNode parentNode) {
 		if(
 			curGuideSquareNode != null &&
@@ -556,6 +570,7 @@ public class GltfActivity extends AppCompatActivity {
 		}
 	}
 
+	// 탭을 한번 이상 하면 나타나는 선의 길이를 표시하는 label을 실시간 업데이트 한다.
 	private void updateLabel(Vector3 point1, Vector3 point2, AnchorNode parentNode) {
 
 		if (curDrawingLineNode != null && reticle != null && lastAnchorNodes.size() > 0) {
@@ -623,6 +638,7 @@ public class GltfActivity extends AppCompatActivity {
 		curGuideSquareNode = null;
 	}
 
+	// 탭을 2번 누르면 나타나는 직각을 가이드 하기위해 가이드 사각형을 그린다.
 	private Node drawGuideSquare(Vector3 point1, Vector3 point2, Vector3 point3, AnchorNode parentNode) {
 
 		final Vector3 line1 = Vector3.subtract(point1, point2);
