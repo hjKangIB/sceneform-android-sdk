@@ -437,7 +437,7 @@ public class GltfActivity extends AppCompatActivity {
 												material -> {
 													ModelRenderable model = ShapeFactory.makeCylinder(
 																	.01f,
-																	objectsDepth,
+																	0.001f,
 																	Vector3.zero(), material);
 													Node node = new Node();
 													node.setParent(anchorNode);
@@ -487,7 +487,7 @@ public class GltfActivity extends AppCompatActivity {
 
 												ModelRenderable model = ShapeFactory.makeCylinder(
 																.01f,
-																objectsDepth,
+																0.0000001f,
 																Vector3.zero(), material);
 //											model.setShadowCaster(false);
 //											model.setShadowReceiver(false);
