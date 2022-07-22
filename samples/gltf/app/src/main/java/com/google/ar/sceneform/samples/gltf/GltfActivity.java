@@ -84,7 +84,7 @@ public class GltfActivity extends AppCompatActivity {
 	private Boolean isHit = false;
 	private float planeYPosition = .0f;
 	private float depthOffset = 0.000001f;
-	private float objectsDepth = depthOffset /10;
+	private float objectsDepth = depthOffset / 10;
 	private int phase = 0;
 
 
@@ -232,7 +232,7 @@ public class GltfActivity extends AppCompatActivity {
 	// 탭을 한번이상하면 그려지는 선의 길이와 위치를 업데이트하는 메소드
 	private void updateLine(Color color, Vector3 point1, Vector3 point2, AnchorNode anchorNode) {
 
-		if (curDrawingLineNode != null && curDrawingLineNode.isActive() && reticle != null ) {
+		if (curDrawingLineNode != null && curDrawingLineNode.isActive() && reticle != null) {
 			final Vector3 difference = Vector3.subtract(point1, point2);
 			final Vector3 directionFromTopToBottom = difference.normalized();
 			final Quaternion rotationFromAToB =
@@ -387,7 +387,7 @@ public class GltfActivity extends AppCompatActivity {
 			if (crossResult == "TURN_TO_RIGHT") {
 				// 처음 선분 기준으로 우측꺾임
 				pivotNode.setWorldRotation(normalResult);
-			} else if(crossResult == "TURN_TO_LEFT"){
+			} else if (crossResult == "TURN_TO_LEFT") {
 				// 처음 선분 기준으로 좌측꺾임 ;
 				Quaternion reverse = Quaternion.axisAngle(Vector3.right(), 180);
 				pivotNode.setWorldRotation(Quaternion.multiply(normalResult, reverse));
@@ -476,7 +476,7 @@ public class GltfActivity extends AppCompatActivity {
 		Vector3 camWorldPos = arFragment.getArSceneView().getScene().getCamera().getWorldPosition();
 		Vector3 camLookForward = arFragment.getArSceneView().getScene().getCamera().getForward();
 
-		if(reticle == null){
+		if (reticle == null) {
 			MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(255, 255, 0))
 							.thenAccept(
 											material -> {
@@ -496,7 +496,7 @@ public class GltfActivity extends AppCompatActivity {
 												reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
 											}
 							);
-		} else if(reticle.isActive() && reticle.getRenderable() != null ){
+		} else if (reticle.isActive() && reticle.getRenderable() != null) {
 			reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
 		}
 	}
@@ -515,7 +515,7 @@ public class GltfActivity extends AppCompatActivity {
 			// 실제 감지된 평면상에 접하는 지점과 차이가 발생할 경우가 존재한다.
 			// 이 때문에 종종 2번째 3번째 탭할때 지정되는 point끼리의 높이 차이가 존재하게 되는 문제가 생기는데 이를 보정하기 위해 아래의 로직을 추가한다.
 			Vector3 curReticleHitPosition;
-			if(isHit){
+			if (isHit) {
 				float x = reticle.getWorldPosition().x;
 				float y = planeYPosition;
 				float z = reticle.getWorldPosition().z;
@@ -548,10 +548,10 @@ public class GltfActivity extends AppCompatActivity {
 				}
 			}
 
-			if(lastAnchorNodes.size() == 1){
+			if (lastAnchorNodes.size() == 1) {
 				updateLine(new Color(255, 255, 250), lastAnchor.getWorldPosition(), curReticleHitPosition, lastAnchor);
 				updateLabel(lastAnchor.getWorldPosition(), curReticleHitPosition, curAnchor);
-			} else if(lastAnchorNodes.size() == 2 && curGuideSquareNode != null){
+			} else if (lastAnchorNodes.size() == 2 && curGuideSquareNode != null) {
 				Vector3 point1 = lastAnchorNodes.get(0).getWorldPosition();
 				Vector3 point2 = lastAnchorNodes.get(1).getWorldPosition();
 				Vector3 point3 = getGuidedPoint3(point1, point2, curReticleHitPosition);
@@ -565,12 +565,12 @@ public class GltfActivity extends AppCompatActivity {
 
 	// 탭을 2번 누르면 나타나는 직각을 가이드 하기위해 가이드 사각형을 그리는데 이를 프레임마다 크기및 위치를 업데이트한다.
 	private void updateGuideSquare(Vector3 point1, Vector3 point2, Vector3 point3, AnchorNode parentNode) {
-		if(
-			curGuideSquareNode != null &&
-			curGuideSquareNode.isActive() &&
-			curGuideSquareNode.getParent() != null
-		){
-			curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
+		if (
+						curGuideSquareNode != null &&
+										curGuideSquareNode.isActive() &&
+										curGuideSquareNode.getParent() != null
+		) {
+//			curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
 			curGuideSquareNode = drawGuideSquare(point1, point2, point3, parentNode);
 		}
 	}
@@ -628,7 +628,7 @@ public class GltfActivity extends AppCompatActivity {
 		lastAnchorNodes.clear();
 		distances.clear();
 		curDrawingLineNode = null;
-		if(curDistanceLabelNode.isActive() && curDistanceLabelNode.getParent() != null){
+		if (curDistanceLabelNode.isActive() && curDistanceLabelNode.getParent() != null) {
 			// warn: memory leak
 			curDistanceLabelNode.getParent().removeChild(curDistanceLabelNode);
 		}
@@ -636,7 +636,7 @@ public class GltfActivity extends AppCompatActivity {
 		curDistance = -999.0;
 		curLabelView = null;
 		curAnchor = null;
-		if(curGuideSquareNode.isActive() && curGuideSquareNode.getParent() != null){
+		if (curGuideSquareNode.isActive() && curGuideSquareNode.getParent() != null) {
 			// warn: memory leak
 			curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
 		}
@@ -666,50 +666,59 @@ public class GltfActivity extends AppCompatActivity {
 			calibratedRotation = rotationP1ToP2;
 		}
 
-		Node squareNode = new Node();
+		Node squareNode;
+		if (curGuideSquareNode == null) {
+			squareNode = new Node();
+			squareNode.setParent(parentNode);
+		} else {
+			squareNode = curGuideSquareNode;
+		}
 
 		MaterialFactory.makeTransparentWithColor(getApplicationContext(), new Color(1, 1, 0, 0.3f))
 						.thenAccept(
 										material -> {
 											ModelRenderable model = ShapeFactory.makeCube(
-															new Vector3(height, objectsDepth , width),
+															new Vector3(height, objectsDepth, width),
 															new Vector3(-0.5f * height, 0, 0), material);
-											squareNode.setParent(parentNode);
+
 											squareNode.setRenderable(model);
+
 											squareNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
 											squareNode.setWorldRotation(calibratedRotation);
 
 										}
 						);
 		return squareNode;
+
+
 	}
 
 	// 도형끼리 겹치면 같은 동일 높이라서 그래픽이 반짝반짝 떨리는 문제가 있는데
 	// 이를 해결하기 위해 오브젝트를 배치할때 무시할수 있을 수준의 높이 차이를 만들어준다.
 	// <테스트 결과 문제 해결이 되지 않음>
-	private Vector3	avoidOverlap(Vector3 targetVector){
+	private Vector3 avoidOverlap(Vector3 targetVector) {
 		Vector3 result = Vector3.add(targetVector, new Vector3(0, phase * depthOffset, 0));
 		phase = ++phase % 10 + 1;
 		return result;
 	}
 
-	private Vector3 getGuidedPoint3(Vector3 point1, Vector3 point2, Vector3 point3){
+	private Vector3 getGuidedPoint3(Vector3 point1, Vector3 point2, Vector3 point3) {
 		final Vector3 line1 = Vector3.subtract(point1, point2);
 		final Vector3 line2 = Vector3.subtract(point2, point3);
 		float theta = Vector3.angleBetweenVectors(line1, line2);
 
 		String crossResult = relationBetweenVector(line1, line2);
-		if(crossResult == "TURN_TO_RIGHT"){
-			Vector3 oppositeVector = Vector3.add(Quaternion.rotateVector(Quaternion.axisAngle(Vector3.up(), 90 - theta), line2), point2) ;
-			return Vector3.add(Quaternion.rotateVector(Quaternion.axisAngle(line1, 180), Vector3.subtract(oppositeVector, point2)), point2) ;
+		if (crossResult == "TURN_TO_RIGHT") {
+			Vector3 oppositeVector = Vector3.add(Quaternion.rotateVector(Quaternion.axisAngle(Vector3.up(), 90 - theta), line2), point2);
+			return Vector3.add(Quaternion.rotateVector(Quaternion.axisAngle(line1, 180), Vector3.subtract(oppositeVector, point2)), point2);
 		}
-		Vector3 oppositeVector = Vector3.add(Quaternion.rotateVector(Quaternion.axisAngle(Vector3.up(), theta - 90), line2), point2) ;
-		return Vector3.add(Quaternion.rotateVector(Quaternion.axisAngle(line1, 180), Vector3.subtract(oppositeVector, point2)), point2) ;
+		Vector3 oppositeVector = Vector3.add(Quaternion.rotateVector(Quaternion.axisAngle(Vector3.up(), theta - 90), line2), point2);
+		return Vector3.add(Quaternion.rotateVector(Quaternion.axisAngle(line1, 180), Vector3.subtract(oppositeVector, point2)), point2);
 	}
 
-	private String relationBetweenVector(Vector3 line1, Vector3 line2){
+	private String relationBetweenVector(Vector3 line1, Vector3 line2) {
 		Vector3 crossResult = Vector3.cross(line1, line2);
-		if(crossResult.y >=0){
+		if (crossResult.y >= 0) {
 			// 처음 선분 기준으로 우측꺾임
 			return "TURN_TO_RIGHT";
 		}
