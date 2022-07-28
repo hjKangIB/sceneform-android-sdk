@@ -70,7 +70,7 @@ public class GltfActivity extends AppCompatActivity {
 	private ArFragment arFragment;
 	private Renderable renderable;
 	private List<AnchorNode> lastAnchorNodes = new ArrayList<AnchorNode>();
-	private List<Double> distances = new ArrayList<Double>();
+	private List<Float> distances = new ArrayList<Float>();
 	private float tileWidth = 10.0f; // x (단위 cm)
 	private float tileHeight = 20.0f; // z
 //	private float tileDepth = 0.1f; // y
@@ -83,6 +83,10 @@ public class GltfActivity extends AppCompatActivity {
 	private float depthOffset = 0.000001f;
 	private float objectsDepth = depthOffset / 10;
 	private Vector3 curReticleHitPosition;
+	float floorWidth;
+	float floorHeight;
+	private float restWidth; // 측정된 첫번째 선에서 타일을 깔고 남은 가로 길이
+	private float restHeight; // 측정된 두번째 선에서 타일을 깔고 남은 세로 길이
 
 
 	private final BlockingQueue<MotionEvent> queuedSingleTaps = new ArrayBlockingQueue<>(16);
@@ -251,7 +255,7 @@ public class GltfActivity extends AppCompatActivity {
 	// 두점사이의  거리를 나타내는 라벨을 그린다.
 	private Node drawDistanceLabel(Vector3 point1, Vector3 point2, AnchorNode parentNode) {
 		// represent distance Label
-		double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
+		float distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
 		distances.set(distances.size() - 1, distanceCm);
 
 		Node distanceNode = new Node();
@@ -361,8 +365,9 @@ public class GltfActivity extends AppCompatActivity {
 			pivotNode.setRenderable(renderable);
 			pivotNode.setWorldPosition(anchorNode.getWorldPosition());
 
-			for (int i = 0; i < rowCnt; i++) {
-				for (int j = 0; j < colCnt; j++) {
+			int i=0, j=0;
+			for (i = 0; i < rowCnt; i++) {
+				for (j = 0; j < colCnt; j++) {
 					// Create the transformable model and add it to the anchor.
 					Node model = new Node();
 					model.setParent(pivotNode);
@@ -371,6 +376,11 @@ public class GltfActivity extends AppCompatActivity {
 					nodeBuf.add(model);
 				}
 			}
+			floorWidth = tileWidth * j;
+			floorHeight = tileHeight * i;
+
+			restWidth = distances.get(1) - floorWidth;
+			restHeight = distances.get(2) - floorHeight;
 			final Vector3 line1 = Vector3.subtract(point1, point2);
 			final Vector3 directionLine1 = line1.normalized();
 			final Quaternion rotationFromP1ToP2 =
@@ -424,7 +434,7 @@ public class GltfActivity extends AppCompatActivity {
 				AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
 				anchorNode.setParent(arFragment.getArSceneView().getScene());
 				lastAnchorNodes.add(anchorNode);
-				distances.add(.0);
+				distances.add(.0f);
 				curAnchor = anchorNode;
 
 				Vector3 dummyPoint = anchorNode.getWorldPosition();
