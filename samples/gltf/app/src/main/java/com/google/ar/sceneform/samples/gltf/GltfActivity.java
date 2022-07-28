@@ -77,7 +77,6 @@ public class GltfActivity extends AppCompatActivity {
 	private Node reticle = null;
 	private Node curDrawingLineNode = null;
 	private Node curDistanceLabelNode = null;
-	private Double curDistance = -999.0;
 	private TextView curLabelView = null;
 	private AnchorNode curAnchor = null;
 	private Node curGuideSquareNode = null;
@@ -86,6 +85,7 @@ public class GltfActivity extends AppCompatActivity {
 	private float depthOffset = 0.000001f;
 	private float objectsDepth = depthOffset / 10;
 	private int phase = 0;
+	private Vector3 curReticleHitPosition;
 
 
 	private final BlockingQueue<MotionEvent> queuedSingleTaps = new ArrayBlockingQueue<>(16);
@@ -220,7 +220,7 @@ public class GltfActivity extends AppCompatActivity {
 															Vector3.zero(), material);
 											lineNode.setParent(anchorNode);
 											lineNode.setRenderable(model);
-											lineNode.setWorldPosition(avoidOverlap(Vector3.add(point1, point2).scaled(.5f)));
+											lineNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
 											lineNode.setWorldRotation(rotationP1ToP2);
 
 										}
@@ -261,7 +261,7 @@ public class GltfActivity extends AppCompatActivity {
 //		distanceNode.setParent(lastAnchorNodes.get(lastAnchorNodes.size() - 2));
 		distanceNode.setParent(parentNode);
 		distanceNode.setEnabled(false);
-		distanceNode.setWorldPosition(avoidOverlap(new Vector3((point1.x + point2.x) / 2, point1.y, (point1.z + point2.z) / 2)));
+		distanceNode.setWorldPosition(new Vector3((point1.x + point2.x) / 2, point1.y, (point1.z + point2.z) / 2));
 
 		final Quaternion rotationToFloor = Quaternion.lookRotation(Vector3.up(), Vector3.forward());
 		Vector3 lineVector = point2.x > point1.x ? Vector3.subtract(point2, point1) : Vector3.subtract(point1, point2);
@@ -362,7 +362,7 @@ public class GltfActivity extends AppCompatActivity {
 			Node pivotNode = new Node();
 			pivotNode.setParent(anchorNode);
 			pivotNode.setRenderable(renderable);
-			pivotNode.setWorldPosition(avoidOverlap(anchorNode.getWorldPosition()));
+			pivotNode.setWorldPosition(anchorNode.getWorldPosition());
 
 			for (int i = 0; i < rowCnt; i++) {
 				for (int j = 0; j < colCnt; j++) {
@@ -426,11 +426,12 @@ public class GltfActivity extends AppCompatActivity {
 				// mark anchor point
 				AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
 				anchorNode.setParent(arFragment.getArSceneView().getScene());
-				anchorNode.setWorldPosition(avoidOverlap(anchorNode.getWorldPosition()));
 				lastAnchorNodes.add(anchorNode);
 				distances.add(.0);
-				curDistance = .0;
 				curAnchor = anchorNode;
+
+				Vector3 dummyPoint = anchorNode.getWorldPosition();
+				curDrawingLineNode = drawLine(new Color(255, 255, 250), dummyPoint, dummyPoint, anchorNode);
 
 				MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
 								.thenAccept(
@@ -443,27 +444,27 @@ public class GltfActivity extends AppCompatActivity {
 													node.setParent(anchorNode);
 													node.setRenderable(model);
 													nextColor = (nextColor + 1) % colors.size();
+
+													if (lastAnchorNodes.size() == 2) {
+														Vector3 point1 = lastAnchorNodes.get(0).getWorldPosition();
+														Vector3 point2 = lastAnchorNodes.get(1).getWorldPosition();
+														drawDistanceLabel(point1, point2, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
+														curGuideSquareNode = drawGuideSquare(point1, point2, point2, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
+													} else if (lastAnchorNodes.size() == 3) {
+														Vector3 point1 = lastAnchorNodes.get(0).getWorldPosition();
+														Vector3 point2 = lastAnchorNodes.get(1).getWorldPosition();
+														Vector3 point3 = getGuidedPoint3(point1, point2, curReticleHitPosition);
+														drawDistanceLabel(point2, point3, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
+														set3DTiles();
+
+														anchorNode.setWorldPosition(point3);
+														node.setWorldPosition(point3);
+
+														resetVariables();
+													}
 												}
 								);
 
-
-				Vector3 point1 = anchorNode.getWorldPosition();
-				Vector3 point2 = anchorNode.getWorldPosition();
-				curDrawingLineNode = drawLine(new Color(255, 255, 250), point1, point2, anchorNode);
-
-				if (lastAnchorNodes.size() == 2) {
-					point1 = lastAnchorNodes.get(0).getWorldPosition();
-					point2 = lastAnchorNodes.get(1).getWorldPosition();
-					drawDistanceLabel(point1, point2, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
-					curGuideSquareNode = drawGuideSquare(point1, point2, point2, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
-				} else if (lastAnchorNodes.size() == 3) {
-					point1 = lastAnchorNodes.get(1).getWorldPosition();
-					point2 = lastAnchorNodes.get(2).getWorldPosition();
-					drawDistanceLabel(point1, point2, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
-					set3DTiles();
-
-					resetVariables();
-				}
 				break;
 			}
 		}
@@ -511,18 +512,6 @@ public class GltfActivity extends AppCompatActivity {
 		if (curDrawingLineNode != null && reticle != null && lastAnchorNodes.size() > 0) {
 			AnchorNode lastAnchor = lastAnchorNodes.get(lastAnchorNodes.size() - 1);
 
-			// reticle은 스마트폰 screen상에서 단순 center에서 카메라가 바라보는 방향의 수직으로 뻗은 벡터의 좌표일 뿐이라서
-			// 실제 감지된 평면상에 접하는 지점과 차이가 발생할 경우가 존재한다.
-			// 이 때문에 종종 2번째 3번째 탭할때 지정되는 point끼리의 높이 차이가 존재하게 되는 문제가 생기는데 이를 보정하기 위해 아래의 로직을 추가한다.
-			Vector3 curReticleHitPosition;
-			if (isHit) {
-				float x = reticle.getWorldPosition().x;
-				float y = planeYPosition;
-				float z = reticle.getWorldPosition().z;
-				curReticleHitPosition = new Vector3(x, y, z);
-			} else {
-				curReticleHitPosition = reticle.getWorldPosition();
-			}
 			// 화면상에 reticle이 위치하는 부분에서부터 평면상으로 접하는 지점을 찾기위해 hitTest
 			Frame frame = arFragment.getArSceneView().getArFrame();
 			float viewWidth = arFragment.getArSceneView().getWidth();
@@ -580,7 +569,6 @@ public class GltfActivity extends AppCompatActivity {
 
 		if (curDrawingLineNode != null && reticle != null && lastAnchorNodes.size() > 0) {
 			double distanceCm = ((int) (getDistanceMeters(point1, point2) * 1000)) / 10.0f;
-			curDistance = distanceCm;
 
 			if (curDistanceLabelNode == null && curLabelView == null) {
 				curDistanceLabelNode = new Node();
@@ -633,7 +621,6 @@ public class GltfActivity extends AppCompatActivity {
 			curDistanceLabelNode.getParent().removeChild(curDistanceLabelNode);
 		}
 		curDistanceLabelNode = null;
-		curDistance = -999.0;
 		curLabelView = null;
 		curAnchor = null;
 		if (curGuideSquareNode.isActive() && curGuideSquareNode.getParent() != null) {
@@ -691,15 +678,6 @@ public class GltfActivity extends AppCompatActivity {
 		return squareNode;
 
 
-	}
-
-	// 도형끼리 겹치면 같은 동일 높이라서 그래픽이 반짝반짝 떨리는 문제가 있는데
-	// 이를 해결하기 위해 오브젝트를 배치할때 무시할수 있을 수준의 높이 차이를 만들어준다.
-	// <테스트 결과 문제 해결이 되지 않음>
-	private Vector3 avoidOverlap(Vector3 targetVector) {
-		Vector3 result = Vector3.add(targetVector, new Vector3(0, phase * depthOffset, 0));
-		phase = ++phase % 10 + 1;
-		return result;
 	}
 
 	private Vector3 getGuidedPoint3(Vector3 point1, Vector3 point2, Vector3 point3) {
