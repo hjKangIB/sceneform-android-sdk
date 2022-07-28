@@ -73,18 +73,15 @@ public class GltfActivity extends AppCompatActivity {
 	private List<Double> distances = new ArrayList<Double>();
 	private float tileWidth = 10.0f; // x (단위 cm)
 	private float tileHeight = 20.0f; // z
-	private float tileDepth = 0.1f; // y
+//	private float tileDepth = 0.1f; // y
 	private Node reticle = null;
 	private Node curDrawingLineNode = null;
 	private Node curDistanceLabelNode = null;
 	private TextView curLabelView = null;
 	private AnchorNode curAnchor = null;
 	private Node curGuideSquareNode = null;
-	private Boolean isHit = false;
-	private float planeYPosition = .0f;
 	private float depthOffset = 0.000001f;
 	private float objectsDepth = depthOffset / 10;
-	private int phase = 0;
 	private Vector3 curReticleHitPosition;
 
 
@@ -528,12 +525,11 @@ public class GltfActivity extends AppCompatActivity {
 								&& ((Point) trackable).getOrientationMode()
 								== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
 				) {
-					isHit = true;
 					AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
 					anchorNode.setParent(arFragment.getArSceneView().getScene());
 
 					curReticleHitPosition = anchorNode.getWorldPosition();
-					planeYPosition = curReticleHitPosition.y;
+//					planeYPosition = curReticleHitPosition.y;
 				}
 			}
 
