@@ -26,7 +26,9 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.View;
 import android.view.ViewTreeObserver;
+import android.widget.Button;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -133,6 +135,9 @@ public class GltfActivity extends AppCompatActivity {
 		arFragment.getArSceneView().getScene().addOnUpdateListener(frameTime -> {
 			updateScreen();
 		});
+
+		Button resetBtn = (Button) findViewById(R.id.reset_button) ;
+		resetBtn.setOnClickListener(onResetBtnClickListener);
 	} // onCreate end
 
 	/**
@@ -622,14 +627,18 @@ public class GltfActivity extends AppCompatActivity {
 		lastAnchorNodes.clear();
 		distances.clear();
 		curDrawingLineNode = null;
-		if (curDistanceLabelNode.isActive() && curDistanceLabelNode.getParent() != null) {
+		if (curDistanceLabelNode != null &&
+						curDistanceLabelNode.isActive() &&
+						curDistanceLabelNode.getParent() != null) {
 			// warn: memory leak
 			curDistanceLabelNode.getParent().removeChild(curDistanceLabelNode);
 		}
 		curDistanceLabelNode = null;
 		curLabelView = null;
 		curAnchor = null;
-		if (curGuideSquareNode.isActive() && curGuideSquareNode.getParent() != null) {
+		if (curGuideSquareNode != null &&
+						curGuideSquareNode.isActive() &&
+						curGuideSquareNode.getParent() != null) {
 			// warn: memory leak
 			curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
 		}
@@ -708,5 +717,59 @@ public class GltfActivity extends AppCompatActivity {
 		}
 		return "TURN_TO_LEFT";
 	}
+
+	Button.OnClickListener onResetBtnClickListener = new Button.OnClickListener() {
+		@Override
+		public void onClick(View view) {
+
+			List<Node> nodes  = new ArrayList<>(arFragment.getArSceneView().getScene().getChildren()) ;
+
+			for(Node node: nodes){
+				if(node instanceof AnchorNode){
+					if(((AnchorNode) node).getAnchor() != null){
+						((AnchorNode) node).getAnchor().detach();
+					}
+				}
+			}
+
+			for( AnchorNode anchorNode: lastAnchorNodes){
+				if(anchorNode != null && anchorNode.isActive()){
+					anchorNode.setParent(null);
+				}
+			}
+
+			lastAnchorNodes.removeAll(lastAnchorNodes);
+			distances.removeAll(distances);
+
+			if(curGuideSquareNode != null && curGuideSquareNode.getParent() != null){
+				curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
+				curGuideSquareNode = null;
+			}
+			if(reticle != null &&  reticle.getParent() != null){
+				reticle.getParent().removeChild(reticle);
+				reticle = null;
+			}
+
+			if(curDrawingLineNode != null && curDrawingLineNode.getParent() != null){
+				curDrawingLineNode.getParent().removeChild(curDrawingLineNode);
+				curDrawingLineNode = null;
+			}
+
+			if(curDistanceLabelNode != null && curDistanceLabelNode.getParent() != null){
+				curDistanceLabelNode.getParent().removeChild(curDistanceLabelNode);
+				curDistanceLabelNode = null;
+			}
+
+			curLabelView = null;
+			curAnchor = null;
+
+			curReticleHitPosition = null;
+			floorWidth = .0f;
+			floorHeight = .0f;
+			restWidth = .0f; // 측정된 첫번째 선에서 타일을 깔고 남은 가로 길이
+			restHeight = .0f; // 측정된 두번째 선에서 타일을 깔고 남은 세로 길이
+
+		}
+	};
 }
 
