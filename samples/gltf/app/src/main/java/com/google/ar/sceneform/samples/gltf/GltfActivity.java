@@ -75,7 +75,7 @@ public class GltfActivity extends AppCompatActivity {
 	private List<Float> distances = new ArrayList<Float>();
 	private float tileWidth = 10.0f; // x (단위 cm)
 	private float tileHeight = 20.0f; // z
-//	private float tileDepth = 0.1f; // y
+	//	private float tileDepth = 0.1f; // y
 	private Node reticle = null;
 	private Node curDrawingLineNode = null;
 	private Node curDistanceLabelNode = null;
@@ -136,7 +136,7 @@ public class GltfActivity extends AppCompatActivity {
 			updateScreen();
 		});
 
-		Button resetBtn = (Button) findViewById(R.id.reset_button) ;
+		Button resetBtn = (Button) findViewById(R.id.reset_button);
 		resetBtn.setOnClickListener(onResetBtnClickListener);
 	} // onCreate end
 
@@ -302,8 +302,8 @@ public class GltfActivity extends AppCompatActivity {
 //												}
 //											});
 
-											//	renderable.setShadowCaster(false);
-											//	renderable.setShadowReceiver(false);
+											renderable.setShadowCaster(false);
+											renderable.setShadowReceiver(false);
 											distanceNode.setRenderable(renderable);
 											distanceNode.setEnabled(true);
 											distanceNode.setWorldRotation(rotationResult);
@@ -370,7 +370,7 @@ public class GltfActivity extends AppCompatActivity {
 			pivotNode.setRenderable(renderable);
 			pivotNode.setWorldPosition(anchorNode.getWorldPosition());
 
-			int i=0, j=0;
+			int i = 0, j = 0;
 			for (i = 0; i < rowCnt; i++) {
 				for (j = 0; j < colCnt; j++) {
 					// Create the transformable model and add it to the anchor.
@@ -502,8 +502,8 @@ public class GltfActivity extends AppCompatActivity {
 																.01f,
 																0.0000001f,
 																Vector3.zero(), material);
-//											model.setShadowCaster(false);
-//											model.setShadowReceiver(false);
+												model.setShadowCaster(false);
+												model.setShadowReceiver(false);
 
 												reticle.setRenderable(model);
 												reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
@@ -592,8 +592,8 @@ public class GltfActivity extends AppCompatActivity {
 													String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
 													TextView label = ((TextView) renderable.getView());
 													label.setText(roundDownDistance);
-													//	renderable.setShadowCaster(false);
-													//	renderable.setShadowReceiver(false);
+													renderable.setShadowCaster(false);
+													renderable.setShadowReceiver(false);
 													curDistanceLabelNode.setRenderable(renderable);
 													curLabelView = label;
 												})
@@ -617,8 +617,8 @@ public class GltfActivity extends AppCompatActivity {
 			String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
 			curLabelView.setText(roundDownDistance + "cm");
 
-			//	renderable.setShadowCaster(false);
-			//	renderable.setShadowReceiver(false);
+			renderable.setShadowCaster(false);
+			renderable.setShadowReceiver(false);
 			curDistanceLabelNode.setWorldRotation(rotationResult);
 		}
 	}
@@ -722,18 +722,18 @@ public class GltfActivity extends AppCompatActivity {
 		@Override
 		public void onClick(View view) {
 
-			List<Node> nodes  = new ArrayList<>(arFragment.getArSceneView().getScene().getChildren()) ;
+			List<Node> nodes = new ArrayList<>(arFragment.getArSceneView().getScene().getChildren());
 
-			for(Node node: nodes){
-				if(node instanceof AnchorNode){
-					if(((AnchorNode) node).getAnchor() != null){
+			for (Node node : nodes) {
+				if (node instanceof AnchorNode) {
+					if (((AnchorNode) node).getAnchor() != null) {
 						((AnchorNode) node).getAnchor().detach();
 					}
 				}
 			}
 
-			for( AnchorNode anchorNode: lastAnchorNodes){
-				if(anchorNode != null && anchorNode.isActive()){
+			for (AnchorNode anchorNode : lastAnchorNodes) {
+				if (anchorNode != null && anchorNode.isActive()) {
 					anchorNode.setParent(null);
 				}
 			}
@@ -741,21 +741,21 @@ public class GltfActivity extends AppCompatActivity {
 			lastAnchorNodes.removeAll(lastAnchorNodes);
 			distances.removeAll(distances);
 
-			if(curGuideSquareNode != null && curGuideSquareNode.getParent() != null){
+			if (curGuideSquareNode != null && curGuideSquareNode.getParent() != null) {
 				curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
 				curGuideSquareNode = null;
 			}
-			if(reticle != null &&  reticle.getParent() != null){
+			if (reticle != null && reticle.getParent() != null) {
 				reticle.getParent().removeChild(reticle);
 				reticle = null;
 			}
 
-			if(curDrawingLineNode != null && curDrawingLineNode.getParent() != null){
+			if (curDrawingLineNode != null && curDrawingLineNode.getParent() != null) {
 				curDrawingLineNode.getParent().removeChild(curDrawingLineNode);
 				curDrawingLineNode = null;
 			}
 
-			if(curDistanceLabelNode != null && curDistanceLabelNode.getParent() != null){
+			if (curDistanceLabelNode != null && curDistanceLabelNode.getParent() != null) {
 				curDistanceLabelNode.getParent().removeChild(curDistanceLabelNode);
 				curDistanceLabelNode = null;
 			}
