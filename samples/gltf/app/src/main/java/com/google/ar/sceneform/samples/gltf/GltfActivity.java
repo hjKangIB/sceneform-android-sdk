@@ -28,8 +28,8 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
-import android.widget.Button;
 import android.widget.TextView;
+import android.widget.Button;
 import android.widget.Toast;
 
 import com.google.ar.core.Frame;
@@ -120,7 +120,9 @@ public class GltfActivity extends AppCompatActivity {
 		setContentView(R.layout.activity_ux);
 		arFragment = (ArFragment) getSupportFragmentManager().findFragmentById(R.id.ux_fragment);
 
-		load3DObject("woodTile_tiny.glb");
+//		load3DObject("woodTile_tiny.glb");
+//		load3DObject("sandTile.glb");
+		load3DObject("hwagang.glb");
 
 		arFragment.getArSceneView().getScene().setOnTouchListener(
 						(HitTestResult hitTestResult, MotionEvent motionEvent) -> {
