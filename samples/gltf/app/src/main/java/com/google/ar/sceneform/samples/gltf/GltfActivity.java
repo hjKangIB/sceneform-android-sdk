@@ -32,6 +32,7 @@ import android.widget.TextView;
 import android.widget.Button;
 import android.widget.Toast;
 
+import com.google.ar.core.Anchor;
 import com.google.ar.core.Frame;
 import com.google.ar.core.HitResult;
 import com.google.ar.core.Plane;
@@ -57,6 +58,8 @@ import java.lang.ref.WeakReference;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
@@ -434,6 +437,7 @@ public class GltfActivity extends AppCompatActivity {
 							|| (trackable instanceof Point
 							&& ((Point) trackable).getOrientationMode()
 							== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
+							&& hit.createAnchor() != null
 			) {
 
 				sendToastMessage("카메라에서 선택 바닥 지점까지 거리는 \n" + Float.toString(Math.round(hit.getDistance() * 1000) / 10) + "cm 입니다.");
@@ -541,6 +545,7 @@ public class GltfActivity extends AppCompatActivity {
 								|| (trackable instanceof Point
 								&& ((Point) trackable).getOrientationMode()
 								== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
+								&& hit.createAnchor() != null
 				) {
 					AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
 					anchorNode.setParent(arFragment.getArSceneView().getScene());
@@ -728,6 +733,7 @@ public class GltfActivity extends AppCompatActivity {
 
 			for (Node node : nodes) {
 				if (node instanceof AnchorNode) {
+
 					if (((AnchorNode) node).getAnchor() != null) {
 						((AnchorNode) node).getAnchor().detach();
 					}
@@ -771,6 +777,12 @@ public class GltfActivity extends AppCompatActivity {
 			restWidth = .0f; // 측정된 첫번째 선에서 타일을 깔고 남은 가로 길이
 			restHeight = .0f; // 측정된 두번째 선에서 타일을 깔고 남은 세로 길이
 
+			Collection<Anchor> anchors = arFragment.getArSceneView().getSession().getAllAnchors();
+
+			Iterator<Anchor> it = anchors.iterator();
+			while (it.hasNext()) {
+				it.next().detach();
+			}
 		}
 	};
 }
