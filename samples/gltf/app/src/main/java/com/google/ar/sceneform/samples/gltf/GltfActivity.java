@@ -98,15 +98,15 @@ public class GltfActivity extends AppCompatActivity {
 
 
 	private final List<Color> colors =
-					Arrays.asList(
-									new Color(0, 0, 0, 1),
-									new Color(1, 0, 0, 1),
-									new Color(0, 1, 0, 1),
-									new Color(0, 0, 1, 1),
-									new Color(1, 1, 0, 1),
-									new Color(0, 1, 1, 1),
-									new Color(1, 0, 1, 1),
-									new Color(1, 1, 1, 1));
+		Arrays.asList(
+			new Color(0, 0, 0, 1),
+			new Color(1, 0, 0, 1),
+			new Color(0, 1, 0, 1),
+			new Color(0, 0, 1, 1),
+			new Color(1, 1, 0, 1),
+			new Color(0, 1, 1, 1),
+			new Color(1, 0, 1, 1),
+			new Color(1, 1, 1, 1));
 	private int nextColor = 0;
 
 	@Override
@@ -128,13 +128,13 @@ public class GltfActivity extends AppCompatActivity {
 		load3DObject("hwagang.glb");
 
 		arFragment.getArSceneView().getScene().setOnTouchListener(
-						(HitTestResult hitTestResult, MotionEvent motionEvent) -> {
-							if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
-								handleTap(motionEvent);
-								return true;
-							}
-							return false;
-						}
+			(HitTestResult hitTestResult, MotionEvent motionEvent) -> {
+				if (motionEvent.getAction() == MotionEvent.ACTION_DOWN) {
+					handleTap(motionEvent);
+					return true;
+				}
+				return false;
+			}
 		);
 
 		arFragment.getArSceneView().getScene().addOnUpdateListener(frameTime -> {
@@ -161,13 +161,13 @@ public class GltfActivity extends AppCompatActivity {
 			return false;
 		}
 		String openGlVersionString =
-						((ActivityManager) activity.getSystemService(Context.ACTIVITY_SERVICE))
-										.getDeviceConfigurationInfo()
-										.getGlEsVersion();
+			((ActivityManager) activity.getSystemService(Context.ACTIVITY_SERVICE))
+				.getDeviceConfigurationInfo()
+				.getGlEsVersion();
 		if (Double.parseDouble(openGlVersionString) < MIN_OPENGL_VERSION) {
 			Log.e(TAG, "Sceneform requires OpenGL ES 3.0 later");
 			Toast.makeText(activity, "Sceneform requires OpenGL ES 3.0 or later", Toast.LENGTH_LONG)
-							.show();
+				.show();
 			activity.finish();
 			return false;
 		}
@@ -179,26 +179,26 @@ public class GltfActivity extends AppCompatActivity {
 		// load 3d object
 		WeakReference<GltfActivity> weakActivity = new WeakReference<>(this);
 		ModelRenderable.builder()
-						.setSource(
-										this,
-										Uri.parse(path))
-						.setIsFilamentGltf(true)
-						.build()
-						.thenAccept(
-										modelRenderable -> {
-											GltfActivity activity = weakActivity.get();
-											if (activity != null) {
-												activity.renderable = modelRenderable;
-											}
-										})
-						.exceptionally(
-										throwable -> {
-											Toast toast =
-															Toast.makeText(this, "Unable to load Tiger renderable", Toast.LENGTH_LONG);
-											toast.setGravity(Gravity.CENTER, 0, 0);
-											toast.show();
-											return null;
-										});
+			.setSource(
+				this,
+				Uri.parse(path))
+			.setIsFilamentGltf(true)
+			.build()
+			.thenAccept(
+				modelRenderable -> {
+					GltfActivity activity = weakActivity.get();
+					if (activity != null) {
+						activity.renderable = modelRenderable;
+					}
+				})
+			.exceptionally(
+				throwable -> {
+					Toast toast =
+						Toast.makeText(this, "Unable to load Tiger renderable", Toast.LENGTH_LONG);
+					toast.setGravity(Gravity.CENTER, 0, 0);
+					toast.show();
+					return null;
+				});
 	}
 
 	private double getDistanceMeters(Vector3 v1, Vector3 v2) {
@@ -207,8 +207,8 @@ public class GltfActivity extends AppCompatActivity {
 		float distanceZ = v1.z - v2.z;
 
 		return Math.sqrt(distanceX * distanceX +
-						distanceY * distanceY +
-						distanceZ * distanceZ);
+			distanceY * distanceY +
+			distanceZ * distanceZ);
 	}
 
 	// 탭을 한번 이상 했을 경우 호출되어 선을 그리는 메소드
@@ -221,21 +221,21 @@ public class GltfActivity extends AppCompatActivity {
 		Node lineNode = new Node();
 
 		final Quaternion rotationP1ToP2 =
-						Quaternion.lookRotation(directionP1ToP2, Vector3.up());
+			Quaternion.lookRotation(directionP1ToP2, Vector3.up());
 
 		MaterialFactory.makeOpaqueWithColor(getApplicationContext(), color)
-						.thenAccept(
-										material -> {
-											ModelRenderable model = ShapeFactory.makeCube(
-															new Vector3(.005f, objectsDepth, difference.length()),
-															Vector3.zero(), material);
-											lineNode.setParent(anchorNode);
-											lineNode.setRenderable(model);
-											lineNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
-											lineNode.setWorldRotation(rotationP1ToP2);
+			.thenAccept(
+				material -> {
+					ModelRenderable model = ShapeFactory.makeCube(
+						new Vector3(.005f, objectsDepth, difference.length()),
+						Vector3.zero(), material);
+					lineNode.setParent(anchorNode);
+					lineNode.setRenderable(model);
+					lineNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
+					lineNode.setWorldRotation(rotationP1ToP2);
 
-										}
-						);
+				}
+			);
 		return lineNode;
 	}
 
@@ -247,12 +247,12 @@ public class GltfActivity extends AppCompatActivity {
 			final Vector3 difference = Vector3.subtract(point1, point2);
 			final Vector3 directionFromTopToBottom = difference.normalized();
 			final Quaternion rotationFromAToB =
-							Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
+				Quaternion.lookRotation(directionFromTopToBottom, Vector3.up());
 
 			Material material = curDrawingLineNode.getRenderable().getMaterial();
 			ModelRenderable model = ShapeFactory.makeCube(
-							new Vector3(.005f, objectsDepth, difference.length()),
-							Vector3.zero(), material);
+				new Vector3(.005f, objectsDepth, difference.length()),
+				Vector3.zero(), material);
 
 			curDrawingLineNode.setRenderable(model);
 			curDrawingLineNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
@@ -280,13 +280,13 @@ public class GltfActivity extends AppCompatActivity {
 		Quaternion rotationResult = Quaternion.multiply(rotationToP2, rotationToFloor);
 
 		ViewRenderable.builder()
-						.setView(this, R.layout.tiger_card_view)
-						.build()
-						.thenAccept(
-										(renderable) -> {
-											String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
-											TextView label = ((TextView) renderable.getView());
-											label.setText(roundDownDistance);
+			.setView(this, R.layout.tiger_card_view)
+			.build()
+			.thenAccept(
+				(renderable) -> {
+					String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
+					TextView label = ((TextView) renderable.getView());
+					label.setText(roundDownDistance);
 
 // 선위에 라벨을 그릴수 있도록 좌표 보정
 //											label.getViewTreeObserver().addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener( {
@@ -307,17 +307,17 @@ public class GltfActivity extends AppCompatActivity {
 //												}
 //											});
 
-											renderable.setShadowCaster(false);
-											renderable.setShadowReceiver(false);
-											distanceNode.setRenderable(renderable);
-											distanceNode.setEnabled(true);
-											distanceNode.setWorldRotation(rotationResult);
-										})
-						.exceptionally(
-										(throwable) -> {
-											throw new AssertionError("Could not load card view.", throwable);
-										}
-						);
+					renderable.setShadowCaster(false);
+					renderable.setShadowReceiver(false);
+					distanceNode.setRenderable(renderable);
+					distanceNode.setEnabled(true);
+					distanceNode.setWorldRotation(rotationResult);
+				})
+			.exceptionally(
+				(throwable) -> {
+					throw new AssertionError("Could not load card view.", throwable);
+				}
+			);
 
 //			// 라벨위치 기준 테스트용 표시
 //			Vector3 xAxisPoint = Vector3.add(distanceNode.getWorldPosition(), Vector3.right());
@@ -394,7 +394,7 @@ public class GltfActivity extends AppCompatActivity {
 			final Vector3 line1 = Vector3.subtract(point1, point2);
 			final Vector3 directionLine1 = line1.normalized();
 			final Quaternion rotationFromP1ToP2 =
-							Quaternion.lookRotation(directionLine1, Vector3.up());
+				Quaternion.lookRotation(directionLine1, Vector3.up());
 
 			Quaternion rotation = Quaternion.axisAngle(new Vector3(0f, 1.0f, 0f), -90);
 			Quaternion normalResult = Quaternion.multiply(rotationFromP1ToP2, rotation);
@@ -415,7 +415,7 @@ public class GltfActivity extends AppCompatActivity {
 
 	private void sendToastMessage(String message) {
 		Toast toast =
-						Toast.makeText(this, message, Toast.LENGTH_SHORT);
+			Toast.makeText(this, message, Toast.LENGTH_SHORT);
 		toast.setGravity(Gravity.BOTTOM, 0, 0);
 		toast.show();
 	}
@@ -432,12 +432,12 @@ public class GltfActivity extends AppCompatActivity {
 		for (HitResult hit : hitResultList) {
 			Trackable trackable = hit.getTrackable();
 			if ((trackable instanceof Plane
-							&& ((Plane) trackable).isPoseInPolygon(hit.getHitPose())
-							&& hit.getDistance() > 0)
-							|| (trackable instanceof Point
-							&& ((Point) trackable).getOrientationMode()
-							== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
-							&& hit.createAnchor() != null
+				&& ((Plane) trackable).isPoseInPolygon(hit.getHitPose())
+				&& hit.getDistance() > 0)
+				|| (trackable instanceof Point
+				&& ((Point) trackable).getOrientationMode()
+				== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
+				&& hit.createAnchor() != null
 			) {
 
 				sendToastMessage("카메라에서 선택 바닥 지점까지 거리는 \n" + Float.toString(Math.round(hit.getDistance() * 1000) / 10) + "cm 입니다.");
@@ -452,36 +452,36 @@ public class GltfActivity extends AppCompatActivity {
 				curDrawingLineNode = drawLine(new Color(255, 255, 250), dummyPoint, dummyPoint, anchorNode);
 
 				MaterialFactory.makeOpaqueWithColor(getApplicationContext(), colors.get(nextColor))
-								.thenAccept(
-												material -> {
-													ModelRenderable model = ShapeFactory.makeCylinder(
-																	.01f,
-																	0.001f,
-																	Vector3.zero(), material);
-													Node node = new Node();
-													node.setParent(anchorNode);
-													node.setRenderable(model);
-													nextColor = (nextColor + 1) % colors.size();
+					.thenAccept(
+						material -> {
+							ModelRenderable model = ShapeFactory.makeCylinder(
+								.01f,
+								0.001f,
+								Vector3.zero(), material);
+							Node node = new Node();
+							node.setParent(anchorNode);
+							node.setRenderable(model);
+							nextColor = (nextColor + 1) % colors.size();
 
-													if (lastAnchorNodes.size() == 2) {
-														Vector3 point1 = lastAnchorNodes.get(0).getWorldPosition();
-														Vector3 point2 = lastAnchorNodes.get(1).getWorldPosition();
-														drawDistanceLabel(point1, point2, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
-														curGuideSquareNode = drawGuideSquare(point1, point2, point2, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
-													} else if (lastAnchorNodes.size() == 3) {
-														Vector3 point1 = lastAnchorNodes.get(0).getWorldPosition();
-														Vector3 point2 = lastAnchorNodes.get(1).getWorldPosition();
-														Vector3 point3 = getGuidedPoint3(point1, point2, curReticleHitPosition);
-														drawDistanceLabel(point2, point3, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
-														set3DTiles();
+							if (lastAnchorNodes.size() == 2) {
+								Vector3 point1 = lastAnchorNodes.get(0).getWorldPosition();
+								Vector3 point2 = lastAnchorNodes.get(1).getWorldPosition();
+								drawDistanceLabel(point1, point2, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
+								curGuideSquareNode = drawGuideSquare(point1, point2, point2, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
+							} else if (lastAnchorNodes.size() == 3) {
+								Vector3 point1 = lastAnchorNodes.get(0).getWorldPosition();
+								Vector3 point2 = lastAnchorNodes.get(1).getWorldPosition();
+								Vector3 point3 = getGuidedPoint3(point1, point2, curReticleHitPosition);
+								drawDistanceLabel(point2, point3, lastAnchorNodes.get(lastAnchorNodes.size() - 2));
+								set3DTiles();
 
-														anchorNode.setWorldPosition(point3);
-														node.setWorldPosition(point3);
+								anchorNode.setWorldPosition(point3);
+								node.setWorldPosition(point3);
 
-														resetVariables();
-													}
-												}
-								);
+								resetVariables();
+							}
+						}
+					);
 
 				break;
 			}
@@ -496,25 +496,26 @@ public class GltfActivity extends AppCompatActivity {
 		Vector3 camLookForward = arFragment.getArSceneView().getScene().getCamera().getForward();
 
 		if (reticle == null) {
+			reticle = new Node();
 			MaterialFactory.makeOpaqueWithColor(getApplicationContext(), new Color(255, 255, 0))
-							.thenAccept(
-											material -> {
-
-												reticle = new Node();
-												reticle.setParent(arFragment.getArSceneView().getScene());
+				.thenAccept(
+					material -> {
 
 
-												ModelRenderable model = ShapeFactory.makeCylinder(
-																.01f,
-																0.0000001f,
-																Vector3.zero(), material);
-												model.setShadowCaster(false);
-												model.setShadowReceiver(false);
+						reticle.setParent(arFragment.getArSceneView().getScene());
 
-												reticle.setRenderable(model);
-												reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
-											}
-							);
+
+						ModelRenderable model = ShapeFactory.makeCylinder(
+							.01f,
+							0.0000001f,
+							Vector3.zero(), material);
+						model.setShadowCaster(false);
+						model.setShadowReceiver(false);
+
+						reticle.setRenderable(model);
+						reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
+					}
+				);
 		} else if (reticle.isActive() && reticle.getRenderable() != null) {
 			reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
 		}
@@ -540,12 +541,12 @@ public class GltfActivity extends AppCompatActivity {
 			for (HitResult hit : hitResultList) {
 				Trackable trackable = hit.getTrackable();
 				if ((trackable instanceof Plane
-								&& ((Plane) trackable).isPoseInPolygon(hit.getHitPose())
-								&& hit.getDistance() > 0)
-								|| (trackable instanceof Point
-								&& ((Point) trackable).getOrientationMode()
-								== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
-								&& hit.createAnchor() != null
+					&& ((Plane) trackable).isPoseInPolygon(hit.getHitPose())
+					&& hit.getDistance() > 0)
+					|| (trackable instanceof Point
+					&& ((Point) trackable).getOrientationMode()
+					== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
+					&& hit.createAnchor() != null
 				) {
 					AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
 					anchorNode.setParent(arFragment.getArSceneView().getScene());
@@ -573,9 +574,9 @@ public class GltfActivity extends AppCompatActivity {
 	// 탭을 2번 누르면 나타나는 직각을 가이드 하기위해 가이드 사각형을 그리는데 이를 프레임마다 크기및 위치를 업데이트한다.
 	private void updateGuideSquare(Vector3 point1, Vector3 point2, Vector3 point3, AnchorNode parentNode) {
 		if (
-						curGuideSquareNode != null &&
-										curGuideSquareNode.isActive() &&
-										curGuideSquareNode.getParent() != null
+			curGuideSquareNode != null &&
+				curGuideSquareNode.isActive() &&
+				curGuideSquareNode.getParent() != null
 		) {
 //			curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
 			curGuideSquareNode = drawGuideSquare(point1, point2, point3, parentNode);
@@ -592,23 +593,23 @@ public class GltfActivity extends AppCompatActivity {
 				curDistanceLabelNode = new Node();
 				curDistanceLabelNode.setParent(parentNode);
 				ViewRenderable.builder()
-								.setView(this, R.layout.tiger_card_view)
-								.build()
-								.thenAccept(
-												(renderable) -> {
-													String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
-													TextView label = ((TextView) renderable.getView());
-													label.setText(roundDownDistance);
-													renderable.setShadowCaster(false);
-													renderable.setShadowReceiver(false);
-													curDistanceLabelNode.setRenderable(renderable);
-													curLabelView = label;
-												})
-								.exceptionally(
-												(throwable) -> {
-													throw new AssertionError("Could not load card view.", throwable);
-												}
-								);
+					.setView(this, R.layout.tiger_card_view)
+					.build()
+					.thenAccept(
+						(renderable) -> {
+							String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
+							TextView label = ((TextView) renderable.getView());
+							label.setText(roundDownDistance);
+							renderable.setShadowCaster(false);
+							renderable.setShadowReceiver(false);
+							curDistanceLabelNode.setRenderable(renderable);
+							curLabelView = label;
+						})
+					.exceptionally(
+						(throwable) -> {
+							throw new AssertionError("Could not load card view.", throwable);
+						}
+					);
 				return;
 			}
 
@@ -635,8 +636,8 @@ public class GltfActivity extends AppCompatActivity {
 		distances.clear();
 		curDrawingLineNode = null;
 		if (curDistanceLabelNode != null &&
-						curDistanceLabelNode.isActive() &&
-						curDistanceLabelNode.getParent() != null) {
+			curDistanceLabelNode.isActive() &&
+			curDistanceLabelNode.getParent() != null) {
 			// warn: memory leak
 			curDistanceLabelNode.getParent().removeChild(curDistanceLabelNode);
 		}
@@ -644,8 +645,8 @@ public class GltfActivity extends AppCompatActivity {
 		curLabelView = null;
 		curAnchor = null;
 		if (curGuideSquareNode != null &&
-						curGuideSquareNode.isActive() &&
-						curGuideSquareNode.getParent() != null) {
+			curGuideSquareNode.isActive() &&
+			curGuideSquareNode.getParent() != null) {
 			// warn: memory leak
 			curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
 		}
@@ -659,7 +660,7 @@ public class GltfActivity extends AppCompatActivity {
 		final Vector3 line2 = Vector3.subtract(point2, point3);
 		final Vector3 directionP1ToP2 = line1.normalized();
 		final Quaternion rotationP1ToP2 =
-						Quaternion.lookRotation(directionP1ToP2, Vector3.up());
+			Quaternion.lookRotation(directionP1ToP2, Vector3.up());
 		final float width = line1.length();
 		final float height = line2.length() + 0.0001f; // 맨처음 사각형을 그리면 point2, point3의 좌표가 똑같기 때문에 차이를 약간 두기위해 초기값으로 0.0001f을 더해준다.
 
@@ -684,19 +685,19 @@ public class GltfActivity extends AppCompatActivity {
 		}
 
 		MaterialFactory.makeTransparentWithColor(getApplicationContext(), new Color(1, 1, 0, 0.3f))
-						.thenAccept(
-										material -> {
-											ModelRenderable model = ShapeFactory.makeCube(
-															new Vector3(height, objectsDepth, width),
-															new Vector3(-0.5f * height, 0, 0), material);
+			.thenAccept(
+				material -> {
+					ModelRenderable model = ShapeFactory.makeCube(
+						new Vector3(height, objectsDepth, width),
+						new Vector3(-0.5f * height, 0, 0), material);
 
-											squareNode.setRenderable(model);
+					squareNode.setRenderable(model);
 
-											squareNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
-											squareNode.setWorldRotation(calibratedRotation);
+					squareNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
+					squareNode.setWorldRotation(calibratedRotation);
 
-										}
-						);
+				}
+			);
 		return squareNode;
 
 
@@ -745,9 +746,13 @@ public class GltfActivity extends AppCompatActivity {
 					anchorNode.setParent(null);
 				}
 			}
-
 			lastAnchorNodes.removeAll(lastAnchorNodes);
 			distances.removeAll(distances);
+
+			if (reticle != null) {
+				arFragment.getArSceneView().getScene().removeChild(reticle);
+				reticle = null;
+			}
 
 			if (curGuideSquareNode != null && curGuideSquareNode.getParent() != null) {
 				curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
@@ -781,12 +786,6 @@ public class GltfActivity extends AppCompatActivity {
 				it.next().detach();
 			}
 
-			if (reticle != null ){
-				if (reticle.getParent() != null) {
-					reticle.getParent().removeChild(reticle);
-				}
-				reticle = null;
-			}
 		}
 	};
 }
