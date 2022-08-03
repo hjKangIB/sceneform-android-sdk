@@ -753,10 +753,7 @@ public class GltfActivity extends AppCompatActivity {
 				curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
 				curGuideSquareNode = null;
 			}
-			if (reticle != null && reticle.getParent() != null) {
-				reticle.getParent().removeChild(reticle);
-				reticle = null;
-			}
+
 
 			if (curDrawingLineNode != null && curDrawingLineNode.getParent() != null) {
 				curDrawingLineNode.getParent().removeChild(curDrawingLineNode);
@@ -782,6 +779,13 @@ public class GltfActivity extends AppCompatActivity {
 			Iterator<Anchor> it = anchors.iterator();
 			while (it.hasNext()) {
 				it.next().detach();
+			}
+
+			if (reticle != null ){
+				if (reticle.getParent() != null) {
+					reticle.getParent().removeChild(reticle);
+				}
+				reticle = null;
 			}
 		}
 	};
