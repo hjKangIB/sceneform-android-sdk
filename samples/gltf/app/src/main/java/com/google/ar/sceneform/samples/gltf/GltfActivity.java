@@ -80,6 +80,7 @@ public class GltfActivity extends AppCompatActivity {
 	private float tileHeight = 20.0f; // z
 	//	private float tileDepth = 0.1f; // y
 	private Node reticle = null;
+	private HitResult curHit;
 	private Node curDrawingLineNode = null;
 	private Node curDistanceLabelNode = null;
 	private TextView curLabelView = null;
@@ -92,6 +93,7 @@ public class GltfActivity extends AppCompatActivity {
 	float floorHeight;
 	private float restWidth; // 측정된 첫번째 선에서 타일을 깔고 남은 가로 길이
 	private float restHeight; // 측정된 두번째 선에서 타일을 깔고 남은 세로 길이
+	final private boolean shadowFlag = false;
 
 
 	private final BlockingQueue<MotionEvent> queuedSingleTaps = new ArrayBlockingQueue<>(16);
@@ -187,6 +189,8 @@ public class GltfActivity extends AppCompatActivity {
 			.thenAccept(
 				modelRenderable -> {
 					GltfActivity activity = weakActivity.get();
+					modelRenderable.setShadowCaster(shadowFlag);
+					modelRenderable.setShadowReceiver(shadowFlag);
 					if (activity != null) {
 						activity.renderable = modelRenderable;
 					}
@@ -229,10 +233,13 @@ public class GltfActivity extends AppCompatActivity {
 					ModelRenderable model = ShapeFactory.makeCube(
 						new Vector3(.005f, objectsDepth, difference.length()),
 						Vector3.zero(), material);
+					model.setShadowCaster(shadowFlag);
+					model.setShadowReceiver(shadowFlag);
 					lineNode.setParent(anchorNode);
 					lineNode.setRenderable(model);
 					lineNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
 					lineNode.setWorldRotation(rotationP1ToP2);
+
 
 				}
 			);
@@ -253,6 +260,8 @@ public class GltfActivity extends AppCompatActivity {
 			ModelRenderable model = ShapeFactory.makeCube(
 				new Vector3(.005f, objectsDepth, difference.length()),
 				Vector3.zero(), material);
+			model.setShadowCaster(shadowFlag);
+			model.setShadowReceiver(shadowFlag);
 
 			curDrawingLineNode.setRenderable(model);
 			curDrawingLineNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
@@ -307,8 +316,8 @@ public class GltfActivity extends AppCompatActivity {
 //												}
 //											});
 
-					renderable.setShadowCaster(false);
-					renderable.setShadowReceiver(false);
+					renderable.setShadowCaster(shadowFlag);
+					renderable.setShadowReceiver(shadowFlag);
 					distanceNode.setRenderable(renderable);
 					distanceNode.setEnabled(true);
 					distanceNode.setWorldRotation(rotationResult);
@@ -440,6 +449,13 @@ public class GltfActivity extends AppCompatActivity {
 				&& hit.createAnchor() != null
 			) {
 
+				if(curHit == null){
+					curHit = hit;
+				}
+				if(!curHit.getTrackable().equals(trackable)){
+					break;
+				}
+
 				sendToastMessage("카메라에서 선택 바닥 지점까지 거리는 \n" + Float.toString(Math.round(hit.getDistance() * 1000) / 10) + "cm 입니다.");
 				// mark anchor point
 				AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
@@ -459,9 +475,12 @@ public class GltfActivity extends AppCompatActivity {
 								0.001f,
 								Vector3.zero(), material);
 							Node node = new Node();
+							model.setShadowCaster(shadowFlag);
+							model.setShadowReceiver(shadowFlag);
 							node.setParent(anchorNode);
 							node.setRenderable(model);
 							nextColor = (nextColor + 1) % colors.size();
+
 
 							if (lastAnchorNodes.size() == 2) {
 								Vector3 point1 = lastAnchorNodes.get(0).getWorldPosition();
@@ -509,8 +528,8 @@ public class GltfActivity extends AppCompatActivity {
 							.01f,
 							0.0000001f,
 							Vector3.zero(), material);
-						model.setShadowCaster(false);
-						model.setShadowReceiver(false);
+						model.setShadowCaster(shadowFlag);
+						model.setShadowReceiver(shadowFlag);
 
 						reticle.setRenderable(model);
 						reticle.setWorldPosition(Vector3.add(camWorldPos, camLookForward));
@@ -548,6 +567,10 @@ public class GltfActivity extends AppCompatActivity {
 					== Point.OrientationMode.ESTIMATED_SURFACE_NORMAL)
 					&& hit.createAnchor() != null
 				) {
+
+					if(curHit != null && !curHit.getTrackable().equals(trackable)){
+						break;
+					}
 					AnchorNode anchorNode = new AnchorNode(hit.createAnchor());
 					anchorNode.setParent(arFragment.getArSceneView().getScene());
 
@@ -600,8 +623,8 @@ public class GltfActivity extends AppCompatActivity {
 							String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
 							TextView label = ((TextView) renderable.getView());
 							label.setText(roundDownDistance);
-							renderable.setShadowCaster(false);
-							renderable.setShadowReceiver(false);
+							renderable.setShadowCaster(shadowFlag);
+							renderable.setShadowReceiver(shadowFlag);
 							curDistanceLabelNode.setRenderable(renderable);
 							curLabelView = label;
 						})
@@ -625,8 +648,8 @@ public class GltfActivity extends AppCompatActivity {
 			String roundDownDistance = (new DecimalFormat("#.#")).format(distanceCm);
 			curLabelView.setText(roundDownDistance + "cm");
 
-			renderable.setShadowCaster(false);
-			renderable.setShadowReceiver(false);
+			renderable.setShadowCaster(shadowFlag);
+			renderable.setShadowReceiver(shadowFlag);
 			curDistanceLabelNode.setWorldRotation(rotationResult);
 		}
 	}
@@ -651,6 +674,7 @@ public class GltfActivity extends AppCompatActivity {
 			curGuideSquareNode.getParent().removeChild(curGuideSquareNode);
 		}
 		curGuideSquareNode = null;
+		curHit = null;
 	}
 
 	// 탭을 2번 누르면 나타나는 직각을 가이드 하기위해 가이드 사각형을 그린다.
@@ -690,11 +714,13 @@ public class GltfActivity extends AppCompatActivity {
 					ModelRenderable model = ShapeFactory.makeCube(
 						new Vector3(height, objectsDepth, width),
 						new Vector3(-0.5f * height, 0, 0), material);
-
+					model.setShadowCaster(shadowFlag);
+					model.setShadowReceiver(shadowFlag);
 					squareNode.setRenderable(model);
 
 					squareNode.setWorldPosition(Vector3.add(point1, point2).scaled(.5f));
 					squareNode.setWorldRotation(calibratedRotation);
+
 
 				}
 			);
@@ -785,7 +811,8 @@ public class GltfActivity extends AppCompatActivity {
 			while (it.hasNext()) {
 				it.next().detach();
 			}
-
+			curHit = null;
+			arFragment.getResources().flushLayoutCache();
 		}
 	};
 }
